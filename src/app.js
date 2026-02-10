@@ -1,13 +1,31 @@
-const express = require("express");
-const cors = require("cors");
+import express from 'express'
+import cors from 'cors'
+import dotenv from 'dotenv'
 
-const app = express();
+import authRoutes from './routes/auth.routes.js'
+import testRoutes from './routes/test.routes.js'
 
-app.use(cors());
-app.use(express.json());
+import productRoutes from './modules/products/product.routes.js'
 
-app.get("/", (req, res) => {
-  res.json({ ok: true, message: "API Plasticos LC funcionando 🚀" });
-});
 
-module.exports = app;
+
+dotenv.config()
+
+const app = express()
+
+app.use(cors())
+app.use(express.json())
+
+// health check
+app.get('/', (req, res) => {
+  res.json({ ok: true, message: 'API Plasticos LC funcionando 🚀' })
+})
+
+app.use('/auth', authRoutes)
+app.use('/test', testRoutes)
+
+app.use('/products', productRoutes)
+
+
+
+export default app
