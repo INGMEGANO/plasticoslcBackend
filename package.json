@@ -9,7 +9,7 @@
     "dev": "nodemon src/index.js"
   },
   "prisma": {
-    "seed": "node prisma/admin.js"
+    "seed": "node src/seed/admin.js"
   },
   "keywords": [],
   "author": "",
