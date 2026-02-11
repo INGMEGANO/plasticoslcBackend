@@ -73,29 +73,42 @@ model AuditLog {
   createdAt DateTime @default(now())
 }
 
+enum ProductType {
+  PRODUCT
+  SERVICE
+  RAW_MATERIAL
+  FINISHED_PRODUCT
+}
+
 model Product {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   name        String
-  sku         String   @unique
+  sku         String  @unique
+  type ProductType @default(PRODUCT)
   description String?
   price       Float
-  stock       Int      @default(0)
-  active      Boolean  @default(true)
+  stock       Int     @default(0)
+  active      Boolean @default(true)
 
-  movements   InventoryMovement[]
+  movements       InventoryMovement[]
+  invoicesDetails InvoiceDetail[]
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model InventoryMovement {
-  id        String   @id @default(cuid())
+  id        String        @id @default(cuid())
   productId String
   type      InventoryType
   quantity  Int
+
+  reference   String?       // INVOICE, PURCHASE, TRANSFORM
+  referenceId Int?          // id del documento
+
   reason    String?
 
-  product   Product  @relation(fields: [productId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
 
   createdAt DateTime @default(now())
 }
@@ -104,4 +117,88 @@ enum InventoryType {
   IN
   OUT
   ADJUST
+  PURCHASE
+  SALE
+  TRANSFORM_IN
+  TRANSFORM_OUT
+  ADJUSTMENT
+}
+
+model Invoice {
+  status                 String?         @default("0") @db.Char(1)
+  moduleId               String?
+  createdAt              DateTime?       @db.Timestamp(0)
+  updatedAt              DateTime?       @db.Timestamp(0)
+  autoretencion          Decimal?        @default(0.00000) @db.Decimal(10, 5)
+  ciiu                   Int?
+  cufe                   String?         @default("") @db.VarChar(100)
+  note                   String?
+  orderAmountPaid        Decimal         @db.Decimal(10, 2)
+  orderDate              DateTime        @default(now()) @db.Timestamp(0)
+  orderId                Int
+  orderPrefix            String          @db.VarChar(50)
+  orderReceiverAddress   String
+  orderReceiverName      String          @db.VarChar(250)
+  orderReceiverNit       String          @db.VarChar(50)
+  orderReceiverPhone     String          @default("") @db.VarChar(50)
+  orderResolution        String?         @db.VarChar(50)
+  orderSubtotalBeforeTax Decimal         @default(0.00) @db.Decimal(10, 2)
+  orderTaxPer            String          @default("19") @db.VarChar(250)
+  orderTotalAfterTax     Float
+  orderTotalAmountDue    Decimal?        @db.Decimal(10, 2)
+  orderTotalBeforeTax    Decimal         @db.Decimal(10, 2)
+  orderTotalDesc         Decimal         @default(0.00) @db.Decimal(10, 2)
+  orderTotalTax          Decimal         @db.Decimal(10, 2)
+  paymentForms           Int?            @default(0)
+  paymentMethods         Int?            @default(0)
+  plazoPago              String?         @default("0") @db.VarChar(50)
+  reteica                Decimal?        @default(0.00000) @db.Decimal(10, 5)
+  reteiva                Decimal?        @default(0.00000) @db.Decimal(10, 5)
+  retencion              String?         @default("RTE00") @db.VarChar(50)
+  userId                 String
+  vencimiento            String?         @default("0") @db.VarChar(50)
+  id                     Int             @id @default(autoincrement())
+  details                InvoiceDetail[]
+
+  dianStatus String? @default("PENDING") @db.VarChar(20)
+
+  @@unique([orderPrefix, orderId])
+
+  @@map("invoices")
+}
+
+model InvoiceDetail {
+  id                   Int       @id @default(autoincrement()) @map("order_item_id")
+  invoiceId            Int       @map("order_id")
+  orderPrefix          String    @default("") @db.VarChar(50)
+  orderResolution      String?   @db.VarChar(50)
+  productId            String?
+  product              Product?  @relation(fields: [productId], references: [id])
+  itemCode             String?   @db.VarChar(500)
+  reference            String?   @db.VarChar(500)
+  itemName             String?
+  descripcion          String?
+  orderItemQuantity    Decimal?  @db.Decimal(10, 2)
+  orderItemPrice       Decimal?  @db.Decimal(10, 2)
+  orderItemIva         Decimal?  @db.Decimal(10, 2)
+  orderItemDesc        Decimal?  @db.Decimal(10, 2)
+  orderItemFinalAmount Decimal?  @db.Decimal(10, 2)
+  createdAt            DateTime? @default(now()) @map("created_at")
+  updatedAt            DateTime? @updatedAt @map("updated_at")
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@map("invoices_details")
+}
+
+model Resolution {
+  id            Int      @id @default(autoincrement())
+  prefix        String   @unique @db.VarChar(10)
+  currentNumber Int      @default(0)
+  fromNumber    Int
+  toNumber      Int
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  @@map("resolutions")
 }

@@ -7,6 +7,8 @@ import testRoutes from './routes/test.routes.js'
 
 import productRoutes from './modules/products/product.routes.js'
 
+import invoiceRoutes from './modules/invoices/invoice.routes.js'
+
 
 
 dotenv.config()
@@ -26,6 +28,6 @@ app.use('/api/test', testRoutes)
 
 app.use('/api/products', productRoutes)
 
-
+app.use('/api/invoices', invoiceRoutes)
 
 export default app

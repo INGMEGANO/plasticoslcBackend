@@ -33,15 +33,27 @@ export async function login(req, res) {
     return res.status(401).json({ message: 'Invalid credentials' })
   }
 
+  const roles = user.roles.map(r => r.role.name)
+
   const permissions = user.roles.flatMap(r =>
     r.role.permissions.map(p => p.permission.code)
   )
 
   const token = signToken({
     id: user.id,
-    roles: user.roles.map(r => r.role.name),
+    roles,
     permissions
   })
 
-  res.json({ token })
+  // Quitamos el password antes de enviar
+  const { password: _, ...userWithoutPassword } = user
+
+  res.json({
+    token,
+    user: {
+      ...userWithoutPassword,
+      roles,
+      permissions
+    }
+  })
 }

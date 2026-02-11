@@ -8,6 +8,25 @@ export async function createProduct(data) {
   })
 }
 
-export async function listProducts() {
-  return prisma.product.findMany()
+export async function listProducts({ active } = {}) {
+  return prisma.product.findMany({
+    where:
+      active === undefined
+        ? {}
+        : { active }
+  })
+}
+
+export async function activateProduct(id) {
+  return prisma.product.update({
+    where: { id },
+    data: { active: true }
+  })
+}
+
+export async function deactivateProduct(id) {
+  return prisma.product.update({
+    where: { id },
+    data: { active: false }
+  })
 }
