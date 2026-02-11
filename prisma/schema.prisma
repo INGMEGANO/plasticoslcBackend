@@ -81,17 +81,18 @@ enum ProductType {
 }
 
 model Product {
-  id          String  @id @default(cuid())
+  id          String      @id @default(cuid())
   name        String
-  sku         String  @unique
-  type ProductType @default(PRODUCT)
+  sku         String      @unique
+  type        ProductType @default(PRODUCT)
   description String?
   price       Float
-  stock       Int     @default(0)
-  active      Boolean @default(true)
+  stock       Int         @default(0)
+  active      Boolean     @default(true)
 
   movements       InventoryMovement[]
   invoicesDetails InvoiceDetail[]
+  purchaseDetails PurchaseDetail[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -103,10 +104,10 @@ model InventoryMovement {
   type      InventoryType
   quantity  Int
 
-  reference   String?       // INVOICE, PURCHASE, TRANSFORM
-  referenceId Int?          // id del documento
+  reference   String? // INVOICE, PURCHASE, TRANSFORM
+  referenceId Int? // id del documento
 
-  reason    String?
+  reason String?
 
   product Product @relation(fields: [productId], references: [id])
 
@@ -163,7 +164,6 @@ model Invoice {
   dianStatus String? @default("PENDING") @db.VarChar(20)
 
   @@unique([orderPrefix, orderId])
-
   @@map("invoices")
 }
 
@@ -201,4 +201,41 @@ model Resolution {
   createdAt     DateTime @default(now())
 
   @@map("resolutions")
+}
+
+enum PurchaseStatus {
+  DRAFT
+  ACTIVE
+  CANCELLED
+}
+
+
+model Purchase {
+  id            Int      @id @default(autoincrement())
+  supplierName  String
+  supplierNit   String?
+  invoiceNumber String?
+  date          DateTime @default(now())
+
+  subtotal Decimal @db.Decimal(14, 2)
+  tax      Decimal @db.Decimal(14, 2)
+  total    Decimal @db.Decimal(14, 2)
+
+  status PurchaseStatus @default(DRAFT)
+
+  createdAt DateTime @default(now())
+
+  details PurchaseDetail[]
+}
+
+model PurchaseDetail {
+  id         Int     @id @default(autoincrement())
+  purchaseId Int
+  productId  String
+  quantity   Decimal @db.Decimal(14, 2)
+  cost       Decimal @db.Decimal(14, 2)
+  total      Decimal @db.Decimal(14, 2)
+
+  purchase Purchase @relation(fields: [purchaseId], references: [id])
+  product  Product  @relation(fields: [productId], references: [id])
 }

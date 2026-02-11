@@ -4,6 +4,8 @@ import { audit } from '../../middlewares/audit.middleware.js'
 import {
   create,
   list,
+  getById,
+  update,
   activate,
   deactivate,
   move
@@ -13,7 +15,6 @@ console.log('✅ product.routes.js cargado')
 
 const router = Router()
 
-// crear producto
 router.post(
   '/',
   auth,
@@ -21,10 +22,18 @@ router.post(
   create
 )
 
-// listar productos
 router.get('/', list)
 
-// activar producto
+// 🔥 FALTABAN ESTAS DOS
+router.get('/:id', getById)
+
+router.put(
+  '/:id',
+  auth,
+  audit({ action: 'UPDATE', module: 'PRODUCT' }),
+  update
+)
+
 router.patch(
   '/:id/activate',
   auth,
@@ -32,7 +41,6 @@ router.patch(
   activate
 )
 
-// desactivar producto
 router.patch(
   '/:id/deactivate',
   auth,
@@ -40,7 +48,6 @@ router.patch(
   deactivate
 )
 
-// mover stock
 router.post(
   '/:id/move',
   auth,
