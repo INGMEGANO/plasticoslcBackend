@@ -126,7 +126,14 @@ export async function getInvoices(query) {
       where,
       skip,
       take: limit,
-      orderBy: { id: 'desc' }
+      orderBy: { id: 'desc' },
+      include: {
+        details: {
+          include: {
+            product: true
+          }
+        }
+      }
     }),
     prisma.invoice.count({ where })
   ])
@@ -139,11 +146,16 @@ export async function getInvoices(query) {
   }
 }
 
+
 export async function getInvoiceById(id) {
   const invoice = await prisma.invoice.findUnique({
     where: { id: Number(id) },
     include: {
-      details: true
+      details: {
+        include: {
+          product: true
+        }
+      }
     }
   })
 
@@ -161,7 +173,11 @@ export async function getInvoiceByNumber(prefix, orderId) {
       orderId: Number(orderId)
     },
     include: {
-      details: true
+      details: {
+        include: {
+          product: true
+        }
+      }
     }
   })
 
@@ -172,6 +188,36 @@ export async function getInvoiceByNumber(prefix, orderId) {
   return invoice
 }
 
+
+
+
+async function getNextInvoiceNumber(tx, prefix) {
+
+  const resolution = await tx.resolution.findUnique({
+    where: { prefix }
+  })
+
+  if (!resolution)
+    throw new Error(`No existe resolución para prefijo ${prefix}`)
+
+  if (!resolution.active)
+    throw new Error(`La resolución ${prefix} está inactiva`)
+
+  const nextNumber = resolution.currentNumber + 1
+
+  if (nextNumber > resolution.toNumber)
+    throw new Error(`Se agotó el rango autorizado para ${prefix}`)
+
+  // actualizar consecutivo
+  await tx.resolution.update({
+    where: { prefix },
+    data: {
+      currentNumber: nextNumber
+    }
+  })
+
+  return nextNumber
+}
 
 export async function cancelInvoice(prefix, number) {
   return prisma.$transaction(async (tx) => {
@@ -227,32 +273,4 @@ export async function cancelInvoice(prefix, number) {
 
     return { message: "Factura anulada correctamente" }
   })
-}
-
-async function getNextInvoiceNumber(tx, prefix) {
-
-  const resolution = await tx.resolution.findUnique({
-    where: { prefix }
-  })
-
-  if (!resolution)
-    throw new Error(`No existe resolución para prefijo ${prefix}`)
-
-  if (!resolution.active)
-    throw new Error(`La resolución ${prefix} está inactiva`)
-
-  const nextNumber = resolution.currentNumber + 1
-
-  if (nextNumber > resolution.toNumber)
-    throw new Error(`Se agotó el rango autorizado para ${prefix}`)
-
-  // actualizar consecutivo
-  await tx.resolution.update({
-    where: { prefix },
-    data: {
-      currentNumber: nextNumber
-    }
-  })
-
-  return nextNumber
 }
