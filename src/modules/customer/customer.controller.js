@@ -1,0 +1,65 @@
+import * as customerService from "./customer.service.js";
+
+export const create = async (req, res) => {
+  try {
+    const customer = await customerService.create(req.body);
+    res.status(201).json(customer);
+  } catch (error) {
+    res.status(500).json({ message: "Error creating customer", error });
+  }
+};
+
+export const findAll = async (req, res) => {
+  try {
+    const customers = await customerService.findAll();
+    res.json(customers);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching customers", error });
+  }
+};
+
+export const findById = async (req, res) => {
+  try {
+    const customer = await customerService.findById(req.params.id);
+
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    res.json(customer);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching customer", error });
+  }
+};
+
+export const update = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const customer = await customerService.update(id, {
+      name: req.body.name,
+      nit: req.body.nit,
+      email: req.body.email,
+      phone: req.body.phone,
+      address: req.body.address,
+      active: req.body.active
+    });
+
+    res.json(customer);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({
+      message: error.message
+    });
+  }
+};
+
+
+export const deleteCustomer = async (req, res) => {
+  try {
+    await customerService.deleteCustomer(req.params.id);
+    res.json({ message: "Customer inactivated successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error inactivating customer", error });
+  }
+};

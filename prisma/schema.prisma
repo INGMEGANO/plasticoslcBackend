@@ -17,6 +17,9 @@ model User {
   roles  UserRole[]
   audits AuditLog[]
 
+  invoicesCreated Invoice[]
+  invoicesSold    Invoice[] @relation("InvoiceSeller")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -163,6 +166,11 @@ model Invoice {
 
   dianStatus String? @default("PENDING") @db.VarChar(20)
 
+  sellerId String?
+  seller   User? @relation("InvoiceSeller", fields: [sellerId], references: [id])
+
+  user     User  @relation(fields: [userId], references: [id])
+
   @@unique([orderPrefix, orderId])
   @@map("invoices")
 }
@@ -238,4 +246,30 @@ model PurchaseDetail {
 
   purchase Purchase @relation(fields: [purchaseId], references: [id])
   product  Product  @relation(fields: [productId], references: [id])
+}
+
+model Supplier {
+  id        String   @id @default(cuid())
+  name      String
+  nit       String?  @unique
+  email     String?
+  phone     String?
+  address   String?
+  active    Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  nit       String?  @unique
+  email     String?
+  phone     String?
+  address   String?
+  active    Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

@@ -4,31 +4,112 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  const password = await bcrypt.hash('Admin123*', 10)
 
-  const user = await prisma.user.create({
-    data: {
-      name: 'Super Admin',
-      email: 'admin@plasticoslc.com',
-      password
-    }
-  })
+  /* =========================
+     PERMISOS BASE
+  ========================= */
 
-  const role = await prisma.role.create({
-    data: {
+  const permissionsList = [
+    'user.create',
+    'user.read',
+    'user.update',
+    'user.toggle',
+    'user.change_password',
+
+    'role.create',
+    'role.read',
+    'role.update',
+    'role.delete',
+
+    'product.create',
+    'product.read',
+    'product.update',
+    'product.delete'
+  ]
+
+  for (const code of permissionsList) {
+    await prisma.permission.upsert({
+      where: { code },
+      update: {},
+      create: { code }
+    })
+  }
+
+  console.log('Permisos creados o verificados')
+
+  /* =========================
+     CREAR ROL SUPER ADMIN
+  ========================= */
+
+  const role = await prisma.role.upsert({
+    where: { name: 'SUPER_ADMIN' },
+    update: {},
+    create: {
       name: 'SUPER_ADMIN',
       description: 'Acceso total al sistema'
     }
   })
 
-  await prisma.userRole.create({
-    data: {
+  /* =========================
+     ASIGNAR TODOS LOS PERMISOS AL ROL
+  ========================= */
+
+  const allPermissions = await prisma.permission.findMany()
+
+  for (const permission of allPermissions) {
+    await prisma.rolePermission.upsert({
+      where: {
+        roleId_permissionId: {
+          roleId: role.id,
+          permissionId: permission.id
+        }
+      },
+      update: {},
+      create: {
+        roleId: role.id,
+        permissionId: permission.id
+      }
+    })
+  }
+
+  console.log('Permisos asignados al SUPER_ADMIN')
+
+  /* =========================
+     CREAR USUARIO ADMIN
+  ========================= */
+
+  const hashedPassword = await bcrypt.hash('Admin123*', 10)
+
+  const user = await prisma.user.upsert({
+    where: { email: 'admin@plasticoslc.com' },
+    update: {},
+    create: {
+      name: 'Super Admin',
+      email: 'admin@plasticoslc.com',
+      password: hashedPassword,
+      active: true
+    }
+  })
+
+  /* =========================
+     ASIGNAR ROL AL USUARIO
+  ========================= */
+
+  await prisma.userRole.upsert({
+    where: {
+      userId_roleId: {
+        userId: user.id,
+        roleId: role.id
+      }
+    },
+    update: {},
+    create: {
       userId: user.id,
       roleId: role.id
     }
   })
 
-  console.log('SUPER ADMIN creado')
+  console.log('SUPER ADMIN listo con todos los permisos 🚀')
 }
 
 main()
