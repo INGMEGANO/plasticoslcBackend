@@ -17,14 +17,14 @@ app.use(cors())
 app.use(express.json())
 
 // health check
-app.get('/', (req, res) => {
+app.get('/api', (req, res) => {
   res.json({ ok: true, message: 'API Plasticos LC funcionando 🚀' })
 })
 
-app.use('/auth', authRoutes)
-app.use('/test', testRoutes)
+app.use('/api/auth', authRoutes)
+app.use('/api/test', testRoutes)
 
-app.use('/products', productRoutes)
+app.use('/api/products', productRoutes)
 
 
 
