@@ -68,6 +68,27 @@ export async function createInvoice(data) {
     }
     })
 
+    //CREAR EL DETALLE
+    await tx.invoiceDetail.createMany({
+      data: productsCache.map(item => ({
+        invoiceId: invoice.id,
+        orderPrefix: invoice.orderPrefix,
+        productId: item.product.id,
+
+        itemCode: item.product.code || "",
+        reference: item.product.reference || "",
+        itemName: item.product.name,
+        descripcion: item.product.description || "",
+
+        orderItemQuantity: item.quantity,
+        orderItemPrice: item.product.price,
+        orderItemIva: item.iva,
+        orderItemDesc: 0,
+        orderItemFinalAmount: item.total
+      }))
+    })
+
+
 
   // 4️⃣ PROCESAR MOVIMIENTOS Y STOCK
   for (const item of productsCache) {
@@ -93,7 +114,18 @@ export async function createInvoice(data) {
     }
   }
 
-  return invoice
+  const fullInvoice = await tx.invoice.findUnique({
+  where: { id: invoice.id },
+    include: {
+      details: {
+        include: {
+          product: true
+        }
+      }
+    }
+  })
+
+  return fullInvoice 
 })
 
 }
