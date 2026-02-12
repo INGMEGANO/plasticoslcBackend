@@ -7,55 +7,85 @@ export function dianTemplate(doc, invoice, logo, qrImage) {
   const formatDate = (date) =>
     date ? new Date(date).toLocaleDateString("es-CO") : "";
 
+  const pageWidth = doc.page.width;
+
   /* =====================================
-     HEADER SIMPLE FORMAL
+     HEADER FORMAL DIAN
   ===================================== */
 
+  let yStart = 20;
+
+  // Logo izquierda
   if (logo) {
-    doc.image(logo, 40, 15, {
-      fit: [100, 75],
+    doc.image(logo, 40, yStart, {
+      fit: [110, 80],
     });
   }
 
-  doc.fontSize(14).text("FACTURA ELECTRÓNICA DE VENTA", 200, 50);
-
+  // Título centrado real
   doc
-    .fontSize(9)
-    .text(`Prefijo: ${invoice.orderPrefix}`, 400, 40)
-    .text(`Número: ${invoice.orderId}`, 400, 55)
-    .text(`Fecha: ${formatDate(invoice.orderDate)}`, 400, 70);
+    .fontSize(16)
+    .font("Helvetica-Bold")
+    .text("FACTURA ELECTRÓNICA DE VENTA", 0, yStart + 20, {
+      align: "center",
+    });
+
+  doc.font("Helvetica").fontSize(10);
+
+  // Bloque datos factura derecha
+  doc
+    .text(`Prefijo: ${invoice.orderPrefix || ""}`, pageWidth - 150, yStart + 10)
+    .text(`Número: ${invoice.orderId || ""}`, pageWidth - 150, yStart + 25)
+    .text(`Fecha: ${formatDate(invoice.orderDate)}`, pageWidth - 150, yStart + 40)
+    .text(`Vence: ${formatDate(invoice.dueDate)}`, pageWidth - 150, yStart + 55);
+
+  /* =====================================
+     SEPARADOR
+  ===================================== */
+
+  doc.moveTo(40, 110).lineTo(pageWidth - 40, 110).stroke();
 
   /* =====================================
      DATOS CLIENTE
   ===================================== */
 
-  doc.moveTo(40, 100).lineTo(550, 100).stroke();
+  let y = 120;
 
-  doc.fontSize(10);
-  doc.text(`Cliente: ${invoice.orderReceiverName}`, 40, 110);
-  doc.text(`NIT: ${invoice.orderReceiverNit}`, 40, 125);
-  doc.text(`Dirección: ${invoice.orderReceiverAddress}`, 40, 140);
-  doc.text(`Teléfono: ${invoice.orderReceiverPhone}`, 40, 155);
+  doc.font("Helvetica-Bold").fontSize(11).text("DATOS DEL CLIENTE", 40, y);
+
+  y += 15;
+
+  doc.font("Helvetica").fontSize(10);
+
+  doc.text(`Cliente: ${invoice.orderReceiverName || ""}`, 40, y);
+  y += 15;
+  doc.text(`NIT: ${invoice.orderReceiverNit || ""}`, 40, y);
+  y += 15;
+  doc.text(`Dirección: ${invoice.orderReceiverAddress || ""}`, 40, y);
+  y += 15;
+  doc.text(`Teléfono: ${invoice.orderReceiverPhone || ""}`, 40, y);
 
   /* =====================================
      TABLA
   ===================================== */
 
-  let y = 180;
+  y += 25;
 
-  doc.moveTo(40, y).lineTo(550, y).stroke();
+  doc.moveTo(40, y).lineTo(pageWidth - 40, y).stroke();
+  y += 8;
 
-  y += 10;
+  doc.font("Helvetica-Bold").fontSize(10);
 
-  doc.fontSize(10);
   doc.text("Descripción", 40, y);
   doc.text("Cant", 300, y, { width: 50, align: "right" });
   doc.text("Precio", 370, y, { width: 70, align: "right" });
   doc.text("Total", 460, y, { width: 80, align: "right" });
 
   y += 15;
-  doc.moveTo(40, y).lineTo(550, y).stroke();
+  doc.moveTo(40, y).lineTo(pageWidth - 40, y).stroke();
   y += 10;
+
+  doc.font("Helvetica").fontSize(10);
 
   invoice.details.forEach((item) => {
     const quantity = Number(item.orderItemQuantity || 0);
@@ -65,15 +95,27 @@ export function dianTemplate(doc, invoice, logo, qrImage) {
     const description =
       item.itemName || item.descripcion || item.product?.name || "";
 
-    doc.text(description, 40, y);
-    doc.text(quantity.toFixed(2), 300, y, { width: 50, align: "right" });
-    doc.text(formatMoney(price), 370, y, { width: 70, align: "right" });
-    doc.text(formatMoney(total), 460, y, { width: 80, align: "right" });
+    doc.text(description, 40, y, { width: 240 });
 
-    y += 20;
+    doc.text(quantity.toFixed(2), 300, y, {
+      width: 50,
+      align: "right",
+    });
+
+    doc.text(formatMoney(price), 370, y, {
+      width: 70,
+      align: "right",
+    });
+
+    doc.text(formatMoney(total), 460, y, {
+      width: 80,
+      align: "right",
+    });
+
+    y += 18;
   });
 
-  doc.moveTo(40, y).lineTo(550, y).stroke();
+  doc.moveTo(40, y).lineTo(pageWidth - 40, y).stroke();
 
   /* =====================================
      TOTALES
@@ -81,26 +123,46 @@ export function dianTemplate(doc, invoice, logo, qrImage) {
 
   y += 20;
 
-  doc.text(`Subtotal: $${formatMoney(invoice.orderTotalBeforeTax)}`, 350, y);
+  doc.font("Helvetica-Bold").fontSize(11);
+
+  doc.text(
+    `Subtotal: $${formatMoney(invoice.orderTotalBeforeTax)}`,
+    pageWidth - 220,
+    y
+  );
 
   y += 15;
 
-  doc.text(`IVA: $${formatMoney(invoice.orderTotalTax)}`, 350, y);
+  doc.text(
+    `IVA: $${formatMoney(invoice.orderTotalTax)}`,
+    pageWidth - 220,
+    y
+  );
 
-  y += 15;
+  y += 18;
 
-  doc
-    .fontSize(12)
-    .text(`TOTAL: $${formatMoney(invoice.orderTotalAmountDue)}`, 350, y);
+  doc.fontSize(13);
+
+  doc.text(
+    `TOTAL A PAGAR: $${formatMoney(invoice.orderTotalAmountDue)}`,
+    pageWidth - 220,
+    y
+  );
 
   /* =====================================
      QR + CUFE
   ===================================== */
 
   if (qrImage) {
-    doc.image(qrImage, 40, 650, { width: 80 });
+    doc.image(qrImage, 40, 650, { width: 90 });
   }
 
-  doc.fontSize(8);
-  doc.text(`CUFE: ${invoice.cufe || ""}`, 40, 730);
+  doc.fontSize(8).font("Helvetica");
+
+  doc.text(
+    `CUFE: ${invoice.cufe || "SIN CUFE"}`,
+    40,
+    730,
+    { width: pageWidth - 80 }
+  );
 }
