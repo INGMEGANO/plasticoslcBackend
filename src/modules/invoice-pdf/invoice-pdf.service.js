@@ -12,27 +12,7 @@ const prisma = new PrismaClient()
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-let logo = null;
 
-try {
-  const logoPathEnv = process.env.COMPANY_LOGO_PATH;
-
-  if (logoPathEnv) {
-    const fullPath = path.join(process.cwd(), logoPathEnv);
-
-    if (fs.existsSync(fullPath)) {
-      logo = fullPath;
-    } else {
-      console.warn('El archivo del logo no existe en la ruta:', fullPath);
-    }
-  } else {
-    console.warn('No se ha definido la variable de entorno COMPANY_LOGO_PATH.');
-  }
-} catch (error) {
-  console.error('Error al cargar el logo:', error.message);
-}
-
-console.log('Ruta del logo:', logo);
 
 export async function generateInvoicePDF(invoiceId, style = 'modern') {
   const invoice = await prisma.invoice.findUnique({
@@ -60,12 +40,16 @@ export async function generateInvoicePDF(invoiceId, style = 'modern') {
   const qrImage = await generateQR(qrData)
 
   // Cargar logo
+  // Cargar logo de forma segura
   const logoPath = path.join(
     process.cwd(),
     'uploads',
     'company',
     'logo.png'
-    )
+  )
+
+const logo = fs.existsSync(logoPath) ? logoPath : null
+
 
   // Seleccionar template
   if (style === 'dian') {
