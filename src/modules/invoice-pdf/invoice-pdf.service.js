@@ -12,9 +12,21 @@ const prisma = new PrismaClient()
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const logoPath = path.join(process.cwd(), process.env.COMPANY_LOGO_PATH)
+let logoPath = null
 
-let logo = null
+if (process.env.COMPANY_LOGO_PATH) {
+  logoPath = path.join(
+    process.cwd(),
+    process.env.COMPANY_LOGO_PATH
+  )
+}
+
+let logoBuffer = null
+
+if (logoPath && fs.existsSync(logoPath)) {
+  logoBuffer = fs.readFileSync(logoPath)
+}
+
 if (fs.existsSync(logoPath)) {
   logo = logoPath
 }
