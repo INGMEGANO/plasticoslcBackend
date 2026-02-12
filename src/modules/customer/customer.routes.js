@@ -9,4 +9,7 @@ router.get("/:id", customerController.findById);
 router.put("/:id", customerController.update);
 router.delete("/:id", customerController.deleteCustomer);
 
+router.patch("/:id/deactivate", customerController.deactivate);
+router.patch("/:id/activate", customerController.activate);
+
 export default router;

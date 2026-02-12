@@ -32,3 +32,18 @@ export const deleteCustomer = async (id) => {
     data: { active: false },
   });
 };
+
+
+export const deactivate = async (id) => {
+  return await prisma.customer.update({
+    where: { id },
+    data: { active: false }
+  });
+};
+
+export const activate = async (id) => {
+  return await prisma.customer.update({
+    where: { id },
+    data: { active: true }
+  });
+};

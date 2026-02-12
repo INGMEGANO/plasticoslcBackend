@@ -63,3 +63,40 @@ export const deleteCustomer = async (req, res) => {
     res.status(500).json({ message: "Error inactivating customer", error });
   }
 };
+export const deactivate = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const customer = await customerService.deactivate(id);
+
+    res.json({
+      ok: true,
+      message: "Cliente desactivado correctamente",
+      data: customer
+    });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      message: error.message
+    });
+  }
+};
+
+export const activate = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const customer = await customerService.activate(id);
+
+    res.json({
+      ok: true,
+      message: "Cliente activado correctamente",
+      data: customer
+    });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      message: error.message
+    });
+  }
+};
