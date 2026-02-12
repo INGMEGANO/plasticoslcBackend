@@ -12,6 +12,13 @@ router.post(
   controller.create
 )
 
+router.put(
+  '/:id',
+  auth,
+  audit({ action: 'UPDATE', module: 'INVOICE' }),
+  controller.update
+)
+
 router.get('/', auth, controller.list)
 
 router.get('/:id', auth, controller.getById)

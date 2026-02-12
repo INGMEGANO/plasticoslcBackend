@@ -21,6 +21,29 @@ export async function create(req, res) {
   }
 }
 
+export const update = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    const invoice = await service.updateInvoice(
+      Number(id),
+      req.body
+    )
+
+    res.json({
+      ok: true,
+      data: invoice
+    })
+  } catch (error) {
+    res.status(400).json({
+      ok: false,
+      message: error.message
+    })
+  }
+}
+
+
+
 export async function list(req, res) {
   try {
     const result = await service.getInvoices(req.query)

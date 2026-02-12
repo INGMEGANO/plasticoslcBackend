@@ -171,6 +171,9 @@ model Invoice {
 
   user     User  @relation(fields: [userId], references: [id])
 
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
   @@unique([orderPrefix, orderId])
   @@map("invoices")
 }
@@ -207,6 +210,9 @@ model Resolution {
   toNumber      Int
   active        Boolean  @default(true)
   createdAt     DateTime @default(now())
+  
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
 
   @@map("resolutions")
 }
@@ -272,4 +278,41 @@ model Customer {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Company {
+  id                  String  @id @default(uuid())
+
+  // Información legal
+  businessName        String  // Razón social
+  tradeName           String? // Nombre comercial
+  nit                 String  @unique
+  dv                  String? // Dígito verificación
+  legalRepresentative String?
+  legalRepId          String? // Cédula representante
+
+  // Información fiscal
+  taxRegime           String? // Régimen (Simplificado, Responsable IVA, etc)
+  taxResponsibility   String? // R-99-PN, R-99-PJ
+
+  // Contacto
+  email               String?
+  phone               String?
+  address             String?
+  city                String?
+  department          String?
+  country             String? @default("Colombia")
+
+  // Branding
+  logo                String?
+  primaryColor        String?
+
+  active              Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones futuras
+  invoices     Invoice[]
+  resolutions  Resolution[]
 }
