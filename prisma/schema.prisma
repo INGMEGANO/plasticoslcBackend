@@ -129,7 +129,8 @@ enum InventoryType {
 }
 
 model Invoice {
-  status                 String?         @default("0") @db.Char(1)
+  status                 String          @default("PENDING") @db.VarChar(20)
+
   moduleId               String?
   createdAt              DateTime?       @db.Timestamp(0)
   updatedAt              DateTime?       @db.Timestamp(0)
@@ -161,6 +162,10 @@ model Invoice {
   retencion              String?         @default("RTE00") @db.VarChar(50)
   userId                 String
   vencimiento            String?         @default("0") @db.VarChar(50)
+
+  dueDate DateTime? @db.Timestamp(0)
+  paidAt  DateTime? @db.Timestamp(0)
+
   id                     Int             @id @default(autoincrement())
   details                InvoiceDetail[]
 

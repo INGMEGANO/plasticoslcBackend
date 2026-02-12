@@ -30,6 +30,9 @@ import customerRoutes from "./modules/customer/customer.routes.js";
 
 import dashboardRoutes from './modules/dashboard/dashboard.routes.js'
 
+import invoicePdfRoutes from './modules/invoice-pdf/invoice-pdf.routes.js'
+
+
 
 dotenv.config()
 
@@ -67,6 +70,8 @@ app.use('/api/dashboard', dashboardRoutes)
 
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")))
+
+app.use('/api/invoice-documents', invoicePdfRoutes)
 
 
 export default app
