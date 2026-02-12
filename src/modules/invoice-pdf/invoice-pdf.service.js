@@ -12,22 +12,27 @@ const prisma = new PrismaClient()
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-let logo = null
+let logo = null;
 
 try {
-  if (process.env.COMPANY_LOGO_PATH) {
-    const fullPath = path.join(
-      process.cwd(),
-      process.env.COMPANY_LOGO_PATH
-    )
+  const logoPathEnv = process.env.COMPANY_LOGO_PATH;
+
+  if (logoPathEnv) {
+    const fullPath = path.join(process.cwd(), logoPathEnv);
 
     if (fs.existsSync(fullPath)) {
-      logo = fullPath
+      logo = fullPath;
+    } else {
+      console.warn('El archivo del logo no existe en la ruta:', fullPath);
     }
+  } else {
+    console.warn('No se ha definido la variable de entorno COMPANY_LOGO_PATH.');
   }
 } catch (error) {
-  console.error('Error cargando logo:', error.message)
+  console.error('Error al cargar el logo:', error.message);
 }
+
+console.log('Ruta del logo:', logo);
 
 export async function generateInvoicePDF(invoiceId, style = 'modern') {
   const invoice = await prisma.invoice.findUnique({
