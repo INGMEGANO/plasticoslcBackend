@@ -12,26 +12,22 @@ const prisma = new PrismaClient()
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-let logoPath = null
+let logo = null
 
-if (process.env.COMPANY_LOGO_PATH) {
-  logoPath = path.join(
-    process.cwd(),
-    process.env.COMPANY_LOGO_PATH
-  )
+try {
+  if (process.env.COMPANY_LOGO_PATH) {
+    const fullPath = path.join(
+      process.cwd(),
+      process.env.COMPANY_LOGO_PATH
+    )
+
+    if (fs.existsSync(fullPath)) {
+      logo = fullPath
+    }
+  }
+} catch (error) {
+  console.error('Error cargando logo:', error.message)
 }
-
-let logoBuffer = null
-
-if (logoPath && fs.existsSync(logoPath)) {
-  logoBuffer = fs.readFileSync(logoPath)
-}
-
-if (fs.existsSync(logoPath)) {
-  logo = logoPath
-}
-console.log('Logo path:', logoPath)
-console.log('Existe logo:', fs.existsSync(logoPath))
 
 export async function generateInvoicePDF(invoiceId, style = 'modern') {
   const invoice = await prisma.invoice.findUnique({
