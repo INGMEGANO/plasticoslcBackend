@@ -10,7 +10,7 @@ export function modernTemplate(doc, invoice, logo, qrImage) {
   const pageWidth = doc.page.width
 
   /* =====================================================
-     HEADER OSCURO
+     HEADER
   ===================================================== */
 
   doc.save()
@@ -20,7 +20,6 @@ export function modernTemplate(doc, invoice, logo, qrImage) {
   doc.fillColor('white')
   doc.fontSize(18)
   doc.text('FACTURA DE VENTA', 40, 25)
-
   doc.fillColor('black')
 
   /* =====================================================
@@ -28,25 +27,25 @@ export function modernTemplate(doc, invoice, logo, qrImage) {
   ===================================================== */
 
   if (logo) {
-    doc.image(logo, 40, 75, {
-      fit: [100, 70],
-    });
+    doc.image(logo, 40, 75, { fit: [100, 70] })
   }
-
 
   /* =====================================================
      INFO FACTURA
   ===================================================== */
 
   doc.fontSize(10)
-
   doc.text(`Prefijo: ${invoice.orderPrefix}`, 380, 90)
   doc.text(`Número: ${invoice.orderId}`, 380, 105)
   doc.text(`Fecha: ${formatDate(invoice.orderDate)}`, 380, 120)
-  doc.text(`Vencimiento: ${formatDate(invoice.dueDate)}`, 380, 135)
+  const vencimientoMostrar = invoice.dueDate
+  ? formatDate(invoice.dueDate)
+  : invoice.vencimiento || ''
+
+doc.text(`Vencimiento: ${vencimientoMostrar}`, 380, 135)
 
   /* =====================================================
-     BLOQUE CLIENTE
+     CLIENTE
   ===================================================== */
 
   doc.roundedRect(40, 150, 510, 90, 6).stroke('#d1d5db')
@@ -69,20 +68,34 @@ export function modernTemplate(doc, invoice, logo, qrImage) {
   doc.rect(40, y, 510, 25).fill('#f3f4f6')
   doc.restore()
 
-  doc.fontSize(11)
+  doc.fontSize(10)
+
   doc.text('Descripción', 50, y + 7)
-  doc.text('Cant', 300, y + 7, { width: 50, align: 'right' })
-  doc.text('Precio', 370, y + 7, { width: 70, align: 'right' })
-  doc.text('Total', 460, y + 7, { width: 80, align: 'right' })
+  doc.text('Cant', 260, y + 7, { width: 40, align: 'right' })
+  doc.text('Precio', 310, y + 7, { width: 60, align: 'right' })
+  doc.text('Desc', 380, y + 7, { width: 60, align: 'right' })
+  doc.text('IVA', 450, y + 7, { width: 60, align: 'right' })
+  doc.text('Total', 510, y + 7, { width: 60, align: 'right' })
 
   y += 35
+
+  let subtotalCalculado = 0
+  let totalDescuentosCalculado = 0
+  let totalIvaCalculado = 0
 
   invoice.details.forEach(item => {
     const quantity = Number(item.orderItemQuantity || 0)
     const price = Number(item.orderItemPrice || 0)
-    const total = Number(
-      item.orderItemFinalAmount || quantity * price
-    )
+    const discount = Number(item.orderItemDesc || 0)
+    const ivaItem = Number(item.orderItemIva || 0)
+
+    const base = quantity * price
+    const subtotalLinea = base - discount
+    const totalLinea = subtotalLinea + ivaItem
+
+    subtotalCalculado += base
+    totalDescuentosCalculado += discount
+    totalIvaCalculado += ivaItem
 
     const description =
       item.itemName ||
@@ -90,24 +103,14 @@ export function modernTemplate(doc, invoice, logo, qrImage) {
       item.product?.name ||
       ''
 
-    doc.fontSize(10)
+    doc.fontSize(9)
 
-    doc.text(description, 50, y, { width: 230 })
-
-    doc.text(quantity.toFixed(2), 300, y, {
-      width: 50,
-      align: 'right'
-    })
-
-    doc.text(formatMoney(price), 370, y, {
-      width: 70,
-      align: 'right'
-    })
-
-    doc.text(formatMoney(total), 460, y, {
-      width: 80,
-      align: 'right'
-    })
+    doc.text(description, 50, y, { width: 200 })
+    doc.text(quantity.toFixed(2), 260, y, { width: 40, align: 'right' })
+    doc.text(formatMoney(price), 310, y, { width: 60, align: 'right' })
+    doc.text(formatMoney(discount), 380, y, { width: 60, align: 'right' })
+    doc.text(formatMoney(ivaItem), 450, y, { width: 60, align: 'right' })
+    doc.text(formatMoney(totalLinea), 510, y, { width: 60, align: 'right' })
 
     y += 22
   })
@@ -115,31 +118,67 @@ export function modernTemplate(doc, invoice, logo, qrImage) {
   doc.moveTo(40, y).lineTo(550, y).stroke('#e5e7eb')
 
   /* =====================================================
-     TOTALES
+     TOTALES (100% CALCULADOS EN EL TEMPLATE)
   ===================================================== */
 
   y += 20
 
-  doc.roundedRect(330, y, 220, 90, 6).stroke('#d1d5db')
+  const subtotal = subtotalCalculado
+  const descuentos = totalDescuentosCalculado
+  const iva = totalIvaCalculado
+  const totalConIva = subtotal - descuentos + iva
 
+  const retefuente = subtotal * (Number(invoice.retencion || 0) / 100)
+  const reteica = subtotal * (Number(invoice.reteica || 0) / 100)
+  const reteiva = iva * (Number(invoice.reteiva || 0) / 100)
+  const autoret = subtotal * (Number(invoice.autoretencion || 0) / 100)
+
+  const totalRetenciones =
+    retefuente + reteica + reteiva + autoret
+
+  const totalPagar =
+    totalConIva - totalRetenciones
+
+  doc.roundedRect(330, y, 220, 220, 6).stroke('#d1d5db')
+
+  let ty = y + 15
   doc.fontSize(10)
-  doc.text(
-    `Subtotal: $${formatMoney(invoice.orderTotalBeforeTax)}`,
-    340,
-    y + 15
-  )
 
-  doc.text(
-    `IVA: $${formatMoney(invoice.orderTotalTax)}`,
-    340,
-    y + 35
-  )
+  const row = (label, value) => {
+    doc.text(label, 340, ty)
+    doc.text(value, 450, ty, { width: 90, align: 'right' })
+    ty += 15
+  }
+
+  row('Subtotal:', `$${formatMoney(subtotal)}`)
+  row('Descuentos:', `-$${formatMoney(descuentos)}`)
+  row('IVA:', `$${formatMoney(iva)}`)
+
+  doc.moveTo(340, ty).lineTo(540, ty).stroke('#e5e7eb')
+  ty += 10
+
+  row('Total con IVA:', `$${formatMoney(totalConIva)}`)
+
+  ty += 10
+  doc.moveTo(340, ty).lineTo(540, ty).stroke('#e5e7eb')
+  ty += 10
+
+  row(`Retefuente (${invoice.retencion || 0}%):`, `-$${formatMoney(retefuente)}`)
+  row(`ReteICA (${invoice.reteica || 0}%):`, `-$${formatMoney(reteica)}`)
+  row(`ReteIVA (${invoice.reteiva || 0}%):`, `-$${formatMoney(reteiva)}`)
+  row(`Autoretención (${invoice.autoretencion || 0}%):`, `-$${formatMoney(autoret)}`)
+
+  ty += 10
+  doc.moveTo(340, ty).lineTo(540, ty).stroke('#111827')
+  ty += 15
 
   doc.fontSize(13)
+  doc.text('TOTAL A PAGAR:', 340, ty)
   doc.text(
-    `TOTAL A PAGAR: $${formatMoney(invoice.orderTotalAmountDue)}`,
-    340,
-    y + 60
+    `$${formatMoney(totalPagar)}`,
+    450,
+    ty,
+    { width: 90, align: 'right' }
   )
 
   /* =====================================================

@@ -15,14 +15,10 @@ export function dianTemplate(doc, invoice, logo, qrImage) {
 
   let yStart = 20;
 
-  // Logo izquierda
   if (logo) {
-    doc.image(logo, 40, yStart, {
-      fit: [110, 80],
-    });
+    doc.image(logo, 40, yStart, { fit: [110, 80] });
   }
 
-  // Título centrado real
   doc
     .fontSize(16)
     .font("Helvetica-Bold")
@@ -32,16 +28,15 @@ export function dianTemplate(doc, invoice, logo, qrImage) {
 
   doc.font("Helvetica").fontSize(10);
 
-  // Bloque datos factura derecha
+  const vencimientoMostrar = invoice.dueDate
+    ? formatDate(invoice.dueDate)
+    : invoice.vencimiento || "";
+
   doc
     .text(`Prefijo: ${invoice.orderPrefix || ""}`, pageWidth - 150, yStart + 10)
     .text(`Número: ${invoice.orderId || ""}`, pageWidth - 150, yStart + 25)
     .text(`Fecha: ${formatDate(invoice.orderDate)}`, pageWidth - 150, yStart + 40)
-    .text(`Vence: ${formatDate(invoice.dueDate)}`, pageWidth - 150, yStart + 55);
-
-  /* =====================================
-     SEPARADOR
-  ===================================== */
+    .text(`Vence: ${vencimientoMostrar}`, pageWidth - 150, yStart + 55);
 
   doc.moveTo(40, 110).lineTo(pageWidth - 40, 110).stroke();
 
@@ -66,7 +61,7 @@ export function dianTemplate(doc, invoice, logo, qrImage) {
   doc.text(`Teléfono: ${invoice.orderReceiverPhone || ""}`, 40, y);
 
   /* =====================================
-     TABLA
+     TABLA DETALLADA
   ===================================== */
 
   y += 25;
@@ -77,9 +72,11 @@ export function dianTemplate(doc, invoice, logo, qrImage) {
   doc.font("Helvetica-Bold").fontSize(10);
 
   doc.text("Descripción", 40, y);
-  doc.text("Cant", 300, y, { width: 50, align: "right" });
-  doc.text("Precio", 370, y, { width: 70, align: "right" });
-  doc.text("Total", 460, y, { width: 80, align: "right" });
+  doc.text("Cant", 260, y, { width: 40, align: "right" });
+  doc.text("Precio", 310, y, { width: 60, align: "right" });
+  doc.text("Desc", 380, y, { width: 60, align: "right" });
+  doc.text("IVA", 450, y, { width: 60, align: "right" });
+  doc.text("Total", 510, y, { width: 60, align: "right" });
 
   y += 15;
   doc.moveTo(40, y).lineTo(pageWidth - 40, y).stroke();
@@ -87,67 +84,132 @@ export function dianTemplate(doc, invoice, logo, qrImage) {
 
   doc.font("Helvetica").fontSize(10);
 
-  invoice.details.forEach((item) => {
+  let subtotal = 0;
+  let totalDescuentos = 0;
+  let totalIva = 0;
+
+  const items = invoice.items || invoice.details || [];
+
+  items.forEach((item) => {
     const quantity = Number(item.orderItemQuantity || 0);
     const price = Number(item.orderItemPrice || 0);
-    const total = Number(item.orderItemFinalAmount || quantity * price);
+    const discount = Number(item.orderItemDesc || 0);
+    const iva = Number(item.orderItemIva || 0);
+
+    const base = quantity * price;
+    const subtotalLinea = base - discount;
+    const totalLinea = subtotalLinea + iva;
+
+    subtotal += base;
+    totalDescuentos += discount;
+    totalIva += iva;
 
     const description =
       item.itemName || item.descripcion || item.product?.name || "";
 
-    doc.text(description, 40, y, { width: 240 });
-
-    doc.text(quantity.toFixed(2), 300, y, {
-      width: 50,
-      align: "right",
-    });
-
-    doc.text(formatMoney(price), 370, y, {
-      width: 70,
-      align: "right",
-    });
-
-    doc.text(formatMoney(total), 460, y, {
-      width: 80,
-      align: "right",
-    });
+    doc.text(description, 40, y, { width: 200 });
+    doc.text(quantity.toFixed(2), 260, y, { width: 40, align: "right" });
+    doc.text(formatMoney(price), 310, y, { width: 60, align: "right" });
+    doc.text(formatMoney(discount), 380, y, { width: 60, align: "right" });
+    doc.text(formatMoney(iva), 450, y, { width: 60, align: "right" });
+    doc.text(formatMoney(totalLinea), 510, y, { width: 60, align: "right" });
 
     y += 18;
   });
 
   doc.moveTo(40, y).lineTo(pageWidth - 40, y).stroke();
 
+  
   /* =====================================
-     TOTALES
-  ===================================== */
+   TOTALES CALCULADOS
+===================================== */
 
-  y += 20;
+y += 20;
 
-  doc.font("Helvetica-Bold").fontSize(11);
+const totalConIva = subtotal - totalDescuentos + totalIva;
 
+const retefuente = subtotal * (Number(invoice.retencion || 0) / 100);
+const reteica = subtotal * (Number(invoice.reteica || 0) / 100);
+const reteiva = totalIva * (Number(invoice.reteiva || 0) / 100);
+const autoret = subtotal * (Number(invoice.autoretencion || 0) / 100);
+
+const totalRetenciones =
+  retefuente + reteica + reteiva + autoret;
+
+const totalPagar = totalConIva - totalRetenciones;
+
+doc.font("Helvetica").fontSize(10);
+
+doc.text(`Subtotal: $${formatMoney(subtotal)}`, pageWidth - 220, y);
+y += 15;
+
+doc.text(`Descuentos: -$${formatMoney(totalDescuentos)}`, pageWidth - 220, y);
+y += 15;
+
+doc.text(`IVA: $${formatMoney(totalIva)}`, pageWidth - 220, y);
+y += 15;
+
+doc.text(`Total con IVA: $${formatMoney(totalConIva)}`, pageWidth - 220, y);
+y += 15;
+
+/* =========================
+   RETENCIONES DISCRIMINADAS
+========================= */
+
+if (retefuente > 0) {
   doc.text(
-    `Subtotal: $${formatMoney(invoice.orderTotalBeforeTax)}`,
+    `Retefuente (${invoice.retencion}%): -$${formatMoney(retefuente)}`,
     pageWidth - 220,
     y
   );
-
   y += 15;
+}
 
+if (reteica > 0) {
   doc.text(
-    `IVA: $${formatMoney(invoice.orderTotalTax)}`,
+    `ReteICA (${invoice.reteica}%): -$${formatMoney(reteica)}`,
     pageWidth - 220,
     y
   );
+  y += 15;
+}
 
-  y += 18;
-
-  doc.fontSize(13);
-
+if (reteiva > 0) {
   doc.text(
-    `TOTAL A PAGAR: $${formatMoney(invoice.orderTotalAmountDue)}`,
+    `ReteIVA (${invoice.reteiva}%): -$${formatMoney(reteiva)}`,
     pageWidth - 220,
     y
   );
+  y += 15;
+}
+
+if (autoret > 0) {
+  doc.text(
+    `Autoretención (${invoice.autoretencion}%): -$${formatMoney(autoret)}`,
+    pageWidth - 220,
+    y
+  );
+  y += 15;
+}
+
+/* =========================
+   TOTAL FINAL
+========================= */
+
+doc.moveTo(pageWidth - 230, y)
+  .lineTo(pageWidth - 40, y)
+  .stroke();
+
+y += 15;
+
+doc.font("Helvetica-Bold").fontSize(13);
+
+doc.text(
+  `TOTAL A PAGAR: $${formatMoney(totalPagar)}`,
+  pageWidth - 220,
+  y
+);
+
 
   /* =====================================
      QR + CUFE
