@@ -32,7 +32,7 @@ import dashboardRoutes from './modules/dashboard/dashboard.routes.js'
 
 import invoicePdfRoutes from './modules/invoice-pdf/invoice-pdf.routes.js'
 
-
+import reportssalesRoutes from "./modules/reports/sales/sales.routes.js"
 
 dotenv.config()
 
@@ -73,6 +73,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")))
 
 app.use('/api/invoice-documents', invoicePdfRoutes)
 
+app.use("/api/reports-sales", reportssalesRoutes)
 
 
 

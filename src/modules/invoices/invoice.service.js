@@ -31,14 +31,31 @@ export async function createInvoice(data) {
       if (!product)
         throw new Error(`Producto no existe`)
 
+      // Usar orderItemQuantity si existe, sino quantity
+      const quantity = Number(item.orderItemQuantity || item.quantity)
+
       if (product.type !== "SERVICE") {
-        if (product.stock < item.quantity)
+        if (product.stock < quantity)
           throw new Error(`Stock insuficiente para ${product.name}`)
       }
 
-      const subtotal = Number(product.price) * Number(item.quantity)
-      const iva = subtotal * 0.19
-      const total = subtotal + iva
+      // ✅ Usar valores del payload si vienen, sino recalcular
+      const price = Number(item.orderItemPrice || product.price)
+      const subtotal = price * quantity
+      const itemDesc = Number(item.orderItemDesc || 0)
+      const iva = Number(item.orderItemIva || subtotal * 0.19)
+      const total = Number(item.orderItemFinalAmount || subtotal + iva - itemDesc)
+
+      // ✅ VALIDAR DATOS ENVIADOS vs CALCULADOS
+      if (item.orderItemFinalAmount) {
+        const expectedTotal = subtotal + iva - itemDesc
+        const diff = Math.abs(expectedTotal - total)
+        if (diff > 0.01) {
+          throw new Error(
+            `Item ${item.itemName}: Total incorrecto. Enviaste ${total}, esperado ${expectedTotal.toFixed(2)}`
+          )
+        }
+      }
 
       totalBeforeTax += subtotal
       totalTax += iva
@@ -46,9 +63,11 @@ export async function createInvoice(data) {
 
       productsCache.push({
         product,
-        quantity: item.quantity,
+        quantity: quantity,
+        price: price,
         subtotal,
         iva,
+        itemDesc,
         total
       })
     }
@@ -89,7 +108,7 @@ export async function createInvoice(data) {
       data: {
         companyId: company.id,
 
-        status: "1",
+        status: data.status || "1",
         dianStatus: "PENDING",
 
         orderId: nextNumber,
@@ -101,6 +120,19 @@ export async function createInvoice(data) {
         orderReceiverPhone: data.orderReceiverPhone || "",
 
         userId: data.userId,
+        
+        // 🔹 INFORMACIÓN ADICIONAL
+        orderDate: data.orderDate ? new Date(data.orderDate) : new Date(),
+        note: data.note || null,
+        cufe: data.cufe || "",
+        orderResolution: data.orderResolution || null,
+        paymentForms: data.paymentForms || 0,
+        paymentMethods: data.paymentMethods || 0,
+        plazoPago: data.plazoPago || "0",
+        vencimiento: data.vencimiento || "0",
+        orderTaxPer: data.orderTaxPer || "19",
+        ciiu: data.ciiu || null,
+        autoretencion: data.autoretencion || 0,
 
         // 🔹 TOTALES
         orderSubtotalBeforeTax: totalBeforeTax,
@@ -109,14 +141,14 @@ export async function createInvoice(data) {
 
         orderTotalDesc: globalDiscount,
 
-        reteica: reteIca,
-        reteiva: 0,
-        retencion: reteFuente ? "RETEFUENTE" : null,
+        reteica: data.reteica || reteIca,
+        reteiva: data.reteiva || 0,
+        retencion: data.retencion || (reteFuente ? "RETEFUENTE" : null),
 
         orderTotalAfterTax: totalAfterTax,
         orderTotalAmountDue: grandTotal,
 
-        orderAmountPaid: grandTotal
+        orderAmountPaid: data.orderAmountPaid || grandTotal
       }
     })
 
@@ -136,9 +168,9 @@ export async function createInvoice(data) {
         descripcion: item.product.description || "",
 
         orderItemQuantity: item.quantity,
-        orderItemPrice: item.product.price,
+        orderItemPrice: item.price,
         orderItemIva: item.iva,
-        orderItemDesc: 0,
+        orderItemDesc: item.itemDesc,
         orderItemFinalAmount: item.total
       }))
     })
@@ -252,14 +284,31 @@ export async function updateInvoice(id, data) {
       if (!product)
         throw new Error("Producto no existe")
 
+      // Usar orderItemQuantity si existe, sino quantity
+      const quantity = Number(item.orderItemQuantity || item.quantity)
+
       if (product.type !== "SERVICE") {
-        if (product.stock < item.quantity)
+        if (product.stock < quantity)
           throw new Error(`Stock insuficiente para ${product.name}`)
       }
 
-      const subtotal = Number(product.price) * Number(item.quantity)
-      const iva = subtotal * 0.19
-      const total = subtotal + iva
+      // ✅ Usar valores del payload si vienen, sino recalcular
+      const price = Number(item.orderItemPrice || product.price)
+      const subtotal = price * quantity
+      const itemDesc = Number(item.orderItemDesc || 0)
+      const iva = Number(item.orderItemIva || subtotal * 0.19)
+      const total = Number(item.orderItemFinalAmount || subtotal + iva - itemDesc)
+
+      // ✅ VALIDAR DATOS ENVIADOS vs CALCULADOS
+      if (item.orderItemFinalAmount) {
+        const expectedTotal = subtotal + iva - itemDesc
+        const diff = Math.abs(expectedTotal - total)
+        if (diff > 0.01) {
+          throw new Error(
+            `Item ${item.itemName}: Total incorrecto. Enviaste ${total}, esperado ${expectedTotal.toFixed(2)}`
+          )
+        }
+      }
 
       totalBeforeTax += subtotal
       totalTax += iva
@@ -267,9 +316,11 @@ export async function updateInvoice(id, data) {
 
       productsCache.push({
         product,
-        quantity: item.quantity,
+        quantity: quantity,
+        price: price,
         subtotal,
         iva,
+        itemDesc,
         total
       })
     }
@@ -308,14 +359,27 @@ export async function updateInvoice(id, data) {
 
         orderTotalDesc: globalDiscount,
 
-        reteica: reteIca,
-        reteiva: 0,
-        retencion: reteFuente ? "RETEFUENTE" : null,
+        reteica: data.reteica || reteIca,
+        reteiva: data.reteiva || 0,
+        retencion: data.retencion || (reteFuente ? "RETEFUENTE" : null),
 
         orderTotalAfterTax: totalAfterTax,
         orderTotalAmountDue: grandTotal,
 
-        orderAmountPaid: grandTotal,
+        orderAmountPaid: data.orderAmountPaid || grandTotal,
+
+        // 🔹 INFORMACIÓN ADICIONAL
+        orderDate: data.orderDate ? new Date(data.orderDate) : undefined,
+        note: data.note !== undefined ? data.note : undefined,
+        cufe: data.cufe !== undefined ? data.cufe : undefined,
+        orderResolution: data.orderResolution !== undefined ? data.orderResolution : undefined,
+        paymentForms: data.paymentForms !== undefined ? data.paymentForms : undefined,
+        paymentMethods: data.paymentMethods !== undefined ? data.paymentMethods : undefined,
+        plazoPago: data.plazoPago !== undefined ? data.plazoPago : undefined,
+        vencimiento: data.vencimiento !== undefined ? data.vencimiento : undefined,
+        orderTaxPer: data.orderTaxPer !== undefined ? data.orderTaxPer : undefined,
+        ciiu: data.ciiu !== undefined ? data.ciiu : undefined,
+        autoretencion: data.autoretencion !== undefined ? data.autoretencion : undefined,
 
         updatedAt: new Date()
       }
@@ -337,9 +401,9 @@ export async function updateInvoice(id, data) {
         descripcion: item.product.description || "",
 
         orderItemQuantity: item.quantity,
-        orderItemPrice: item.product.price,
+        orderItemPrice: item.price,
         orderItemIva: item.iva,
-        orderItemDesc: 0,
+        orderItemDesc: item.itemDesc,
         orderItemFinalAmount: item.total
       }))
     })
@@ -536,20 +600,20 @@ export async function cancelInvoice(prefix, number) {
       throw new Error("La factura ya está anulada")
     }
 
-    if (item.product.type !== "SERVICE") {
-        // 🔹 Devolver stock
-        for (const item of invoice.details) {
-        if (!item.productId) continue
+    // 🔹 Devolver stock
+    for (const item of invoice.details) {
+      if (!item.productId) continue
 
+      if (item.product?.type !== "SERVICE") {
         await tx.product.update({
-            where: { id: item.productId },
-            data: {
+          where: { id: item.productId },
+          data: {
             stock: {
-                increment: Number(item.orderItemQuantity)
+              increment: Number(item.orderItemQuantity)
             }
-            }
+          }
         })
-        }
+      }
     }
 
     // 🔹 Marcar como anulada
