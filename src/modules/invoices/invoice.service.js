@@ -21,6 +21,14 @@ export async function createInvoice(data) {
     if (!company)
       throw new Error("No existe una empresa activa")
 
+    // 0️⃣.5 VALIDAR USUARIO
+    const user = await tx.user.findUnique({
+      where: { id: data.userId }
+    })
+
+    if (!user)
+      throw new Error("Usuario no existe")
+
     // 1️⃣ VALIDAR ITEMS Y CALCULAR
     for (const item of data.items) {
 
@@ -42,8 +50,8 @@ export async function createInvoice(data) {
       // ✅ Usar valores del payload si vienen, sino recalcular
       const price = Number(item.orderItemPrice || product.price)
       const subtotal = price * quantity
-      const itemDesc = Number(item.orderItemDesc || 0)
-      const iva = Number(item.orderItemIva || subtotal * 0.19)
+      const itemDesc = Number(item.orderItemDesc ?? 0)
+      const iva = Number(item.orderItemIva !== undefined ? item.orderItemIva : subtotal * 0.19)
       const total = Number(item.orderItemFinalAmount || subtotal + iva - itemDesc)
 
       // ✅ VALIDAR DATOS ENVIADOS vs CALCULADOS
@@ -237,6 +245,16 @@ export async function updateInvoice(id, data) {
     if (existing.dianStatus === "APPROVED")
       throw new Error("No se puede modificar una factura aprobada por DIAN")
 
+    // 1️⃣.5 VALIDAR USUARIO (si viene en los datos)
+    if (data.userId) {
+      const userCheck = await tx.user.findUnique({
+        where: { id: data.userId }
+      })
+
+      if (!userCheck)
+        throw new Error("Usuario no existe")
+    }
+
     // =====================================
     // 2️⃣ DEVOLVER STOCK ANTERIOR
     // =====================================
@@ -295,8 +313,8 @@ export async function updateInvoice(id, data) {
       // ✅ Usar valores del payload si vienen, sino recalcular
       const price = Number(item.orderItemPrice || product.price)
       const subtotal = price * quantity
-      const itemDesc = Number(item.orderItemDesc || 0)
-      const iva = Number(item.orderItemIva || subtotal * 0.19)
+      const itemDesc = Number(item.orderItemDesc ?? 0)
+      const iva = Number(item.orderItemIva !== undefined ? item.orderItemIva : subtotal * 0.19)
       const total = Number(item.orderItemFinalAmount || subtotal + iva - itemDesc)
 
       // ✅ VALIDAR DATOS ENVIADOS vs CALCULADOS
