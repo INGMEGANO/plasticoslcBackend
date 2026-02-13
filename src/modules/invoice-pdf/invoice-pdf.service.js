@@ -43,14 +43,26 @@ export async function generateInvoicePDF(invoiceId, style = 'modern') {
 
   // Cargar logo
   // Cargar logo de forma segura
-  const logoPath = path.join(
-    process.cwd(),
-    'uploads',
-    'company',
-    'logo.png'
+ const companyDir = path.join(
+  process.cwd(),
+  'uploads',
+  'company'
+)
+
+let logo = null
+
+if (fs.existsSync(companyDir)) {
+  const files = fs.readdirSync(companyDir)
+
+  const logoFile = files.find(file =>
+    /^logo\.(png|jpg|jpeg|webp)$/i.test(file)
   )
 
-const logo = fs.existsSync(logoPath) ? logoPath : null
+  if (logoFile) {
+    logo = path.join(companyDir, logoFile)
+  }
+}
+
 
 
   // Seleccionar template

@@ -116,7 +116,7 @@ export const uploadLogo = async (req, res) => {
       })
     }
 
-    const logoUrl = `/uploads/${file.filename}`
+    const logoUrl = `/uploads/company/${file.filename}`
 
     const company = await updateCompany(req.params.id, {
       logo: logoUrl

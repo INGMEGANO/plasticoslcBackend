@@ -7,11 +7,11 @@ const __dirname = path.dirname(__filename)
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, "../uploads"))
+    cb(null, path.join(__dirname, "../../uploads/company"))
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now()
-    cb(null, uniqueSuffix + "-" + file.originalname)
+    const ext = path.extname(file.originalname) // .jpg, .png, etc
+    cb(null, `logo${ext}`)
   }
 })
 
