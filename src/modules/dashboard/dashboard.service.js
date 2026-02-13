@@ -8,6 +8,25 @@ export async function getDashboardInvoices() {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
 
+  // Primero, ver qué hay en la base de datos
+  const allInvoices = await prisma.invoice.findMany({
+    select: {
+      id: true,
+      status: true,
+      orderDate: true,
+      dueDate: true,
+      paidAt: true,
+      orderTotalAmountDue: true,
+      orderTotalAfterTax: true
+    },
+    take: 100
+  })
+  
+  console.log('===== INVOICES DEBUG =====')
+  console.log('Total invoices encontradas:', allInvoices.length)
+  console.log('Sample de facturas:', JSON.stringify(allInvoices.slice(0, 5), null, 2))
+  console.log('Date ranges:', { startOfMonth, endOfMonth, now })
+
   const [
     overdueAgg,
     overdueList,
@@ -23,20 +42,24 @@ export async function getDashboardInvoices() {
     topDebtors
   ] = await Promise.all([
 
-    // 🔴 VENCIDAS
+    // 🔴 VENCIDAS (sin status específico, solo por fecha)
     prisma.invoice.aggregate({
       _sum: { orderTotalAmountDue: true },
-      _count: true,
+      _count: { _all: true },
       where: {
-        status: 'PENDING',
-        dueDate: { lt: now }
+        dueDate: { 
+          lt: now,
+          not: null
+        }
       }
     }),
 
     prisma.invoice.findMany({
       where: {
-        status: 'PENDING',
-        dueDate: { lt: now }
+        dueDate: { 
+          lt: now,
+          not: null
+        }
       },
       orderBy: { dueDate: 'asc' },
       take: 10
@@ -45,9 +68,8 @@ export async function getDashboardInvoices() {
     // 🟡 VENCEN ESTE MES
     prisma.invoice.aggregate({
       _sum: { orderTotalAmountDue: true },
-      _count: true,
+      _count: { _all: true },
       where: {
-        status: 'PENDING',
         dueDate: {
           gte: startOfMonth,
           lte: endOfMonth
@@ -57,7 +79,6 @@ export async function getDashboardInvoices() {
 
     prisma.invoice.findMany({
       where: {
-        status: 'PENDING',
         dueDate: {
           gte: startOfMonth,
           lte: endOfMonth
@@ -67,23 +88,26 @@ export async function getDashboardInvoices() {
       take: 10
     }),
 
-    // 🟢 DISPONIBLES
+    // 🟢 DISPONIBLES (todas las facturas con dueDate)
     prisma.invoice.aggregate({
       _sum: { orderTotalAmountDue: true },
-      _count: true,
-      where: { status: 'PENDING' }
+      _count: { _all: true },
+      where: { 
+        dueDate: { not: null }
+      }
     }),
 
     prisma.invoice.findMany({
-      where: { status: 'PENDING' },
+      where: { 
+        dueDate: { not: null }
+      },
       orderBy: { dueDate: 'asc' },
       take: 10
     }),
 
-    // ⏱ PROMEDIO PAGO
+    // ⏱ PROMEDIO PAGO (facturas con paidAt)
     prisma.invoice.findMany({
       where: {
-        status: 'PAID',
         paidAt: { not: null }
       },
       select: {
@@ -107,7 +131,6 @@ export async function getDashboardInvoices() {
     prisma.invoice.aggregate({
       _sum: { orderTotalAfterTax: true },
       where: {
-        status: 'PAID',
         paidAt: {
           gte: startOfMonth,
           lte: endOfMonth
@@ -119,7 +142,9 @@ export async function getDashboardInvoices() {
     prisma.invoice.count(),
 
     prisma.invoice.count({
-      where: { status: 'PAID' }
+      where: { 
+        paidAt: { not: null }
+      }
     }),
 
     // 🚨 TOP 5 CLIENTES CON MÁS DEUDA
@@ -129,7 +154,7 @@ export async function getDashboardInvoices() {
         orderTotalAmountDue: true
       },
       where: {
-        status: 'PENDING'
+        dueDate: { not: null }
       },
       orderBy: {
         _sum: {
@@ -162,17 +187,17 @@ export async function getDashboardInvoices() {
   return {
     overdue: {
       total: Number(overdueAgg._sum.orderTotalAmountDue || 0),
-      count: overdueAgg._count,
+      count: overdueAgg._count._all,
       items: overdueList
     },
     dueThisMonth: {
       total: Number(dueMonthAgg._sum.orderTotalAmountDue || 0),
-      count: dueMonthAgg._count,
+      count: dueMonthAgg._count._all,
       items: dueMonthList
     },
     availableForPayment: {
       total: Number(availableAgg._sum.orderTotalAmountDue || 0),
-      count: availableAgg._count,
+      count: availableAgg._count._all,
       items: availableList
     },
     averagePaymentDays: avgDays,
@@ -187,7 +212,6 @@ export async function getDashboardInvoices() {
 }
 
 export async function getMonthlySalesChart() {
-  const prisma = new PrismaClient()
   const now = new Date()
 
   const months = []
@@ -239,5 +263,6 @@ export async function getMonthlySalesChart() {
     })
   }
 
+  await prisma.$disconnect()
   return results
 }

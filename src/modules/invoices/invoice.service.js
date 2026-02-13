@@ -109,7 +109,20 @@ export async function createInvoice(data) {
     const nextNumber = await getNextInvoiceNumber(tx, data.orderPrefix)
 
     // ===============================
-    // 3️⃣ CREAR FACTURA
+    // 3️⃣ CALCULAR FECHA VENCIMIENTO
+    // ===============================
+
+    const orderDateObj = data.orderDate ? new Date(data.orderDate) : new Date()
+    const plazoPagoValue = parseInt(data.plazoPago || "0")
+    let calculatedDueDate = null
+
+    if (plazoPagoValue > 0) {
+      calculatedDueDate = new Date(orderDateObj)
+      calculatedDueDate.setDate(calculatedDueDate.getDate() + plazoPagoValue)
+    }
+
+    // ===============================
+    // 4️⃣ CREAR FACTURA
     // ===============================
 
     const invoice = await tx.invoice.create({
@@ -126,11 +139,13 @@ export async function createInvoice(data) {
         orderReceiverNit: data.orderReceiverNit,
         orderReceiverAddress: data.orderReceiverAddress,
         orderReceiverPhone: data.orderReceiverPhone || "",
+        orderReceiverEmail: data.orderReceiverEmail || "",
+        sellerId: data.sellerId || null,
 
         userId: data.userId,
         
         // 🔹 INFORMACIÓN ADICIONAL
-        orderDate: data.orderDate ? new Date(data.orderDate) : new Date(),
+        orderDate: orderDateObj,
         note: data.note || null,
         cufe: data.cufe || "",
         orderResolution: data.orderResolution || null,
@@ -156,13 +171,15 @@ export async function createInvoice(data) {
         orderTotalAfterTax: totalAfterTax,
         orderTotalAmountDue: grandTotal,
 
-        orderAmountPaid: data.orderAmountPaid || grandTotal
+        orderAmountPaid: data.orderAmountPaid || grandTotal,
+        dueDate: calculatedDueDate
       }
     })
 
     // ===============================
-    // 4️⃣ CREAR DETALLE
+    // 5️⃣ CREAR DETALLE
     // ===============================
+
 
     await tx.invoiceDetail.createMany({
       data: productsCache.map(item => ({
@@ -184,8 +201,9 @@ export async function createInvoice(data) {
     })
 
     // ===============================
-    // 5️⃣ DESCONTAR STOCK + MOVIMIENTO
+    // 6️⃣ DESCONTAR STOCK + MOVIMIENTO
     // ===============================
+
 
     for (const item of productsCache) {
 
@@ -359,7 +377,23 @@ export async function updateInvoice(id, data) {
       totalAfterTax - globalDiscount - totalRetenciones
 
     // =====================================
-    // 5️⃣ ACTUALIZAR CABECERA
+    // 5️⃣ CALCULAR FECHA VENCIMIENTO
+    // =====================================
+
+    const updateOrderDate = data.orderDate ? new Date(data.orderDate) : existing.orderDate
+    const updatePlazoPago = data.plazoPago !== undefined ? data.plazoPago : existing.plazoPago
+    const updatePlazoPagoValue = parseInt(updatePlazoPago || "0")
+    let updateCalculatedDueDate = undefined
+
+    if (updatePlazoPagoValue > 0) {
+      updateCalculatedDueDate = new Date(updateOrderDate)
+      updateCalculatedDueDate.setDate(updateCalculatedDueDate.getDate() + updatePlazoPagoValue)
+    } else {
+      updateCalculatedDueDate = null
+    }
+
+    // =====================================
+    // 6️⃣ ACTUALIZAR CABECERA
     // =====================================
 
     const updatedInvoice = await tx.invoice.update({
@@ -370,6 +404,8 @@ export async function updateInvoice(id, data) {
         orderReceiverNit: data.orderReceiverNit,
         orderReceiverAddress: data.orderReceiverAddress,
         orderReceiverPhone: data.orderReceiverPhone || "",
+        orderReceiverEmail: data.orderReceiver || "",
+        sellerId: data.sellerId || null,
 
         orderSubtotalBeforeTax: totalBeforeTax,
         orderTotalBeforeTax: taxableBase,
@@ -398,13 +434,14 @@ export async function updateInvoice(id, data) {
         orderTaxPer: data.orderTaxPer !== undefined ? data.orderTaxPer : undefined,
         ciiu: data.ciiu !== undefined ? data.ciiu : undefined,
         autoretencion: data.autoretencion !== undefined ? data.autoretencion : undefined,
+        dueDate: updateCalculatedDueDate,
 
         updatedAt: new Date()
       }
     })
 
     // =====================================
-    // 6️⃣ CREAR NUEVOS DETALLES
+    // 7️⃣ CREAR NUEVOS DETALLES
     // =====================================
 
     await tx.invoiceDetail.createMany({
@@ -427,7 +464,7 @@ export async function updateInvoice(id, data) {
     })
 
     // =====================================
-    // 7️⃣ DESCONTAR STOCK NUEVO
+    // 8️⃣ DESCONTAR STOCK NUEVO
     // =====================================
 
     for (const item of productsCache) {
