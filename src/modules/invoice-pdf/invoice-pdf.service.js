@@ -24,7 +24,8 @@ export async function generateInvoicePDF(invoiceId, style = 'modern') {
         include: {
           product: true
         }
-      }
+      },
+      company: true
     }
   })
 
@@ -84,7 +85,8 @@ export async function generateInvoicePDFBuffer(invoiceId, style = 'modern') {
     include: {
       details: {
         include: { product: true }
-      }
+      },
+      company: true
     }
   })
 

@@ -30,19 +30,74 @@ export function modernTemplate(doc, invoice, logo, qrImage) {
     doc.image(logo, 40, 75, { fit: [100, 70] })
   }
 
+  // Información de la compañía - centrada
+  let companyY = 85
+  doc.fontSize(11)
+  doc.font('Helvetica-Bold')
+  if (invoice.company) {
+    doc.text(invoice.company.businessName || "", 160, companyY, {
+      width: 180,
+      align: "center",
+    })
+    companyY += 12
+  }
+
+  doc.font('Helvetica')
+  doc.fontSize(9)
+  if (invoice.company?.nit) {
+    doc.text(`NIT: ${invoice.company.nit}`, 160, companyY, {
+      width: 180,
+      align: "center",
+    })
+    companyY += 10
+  }
+
+  if (invoice.company?.email) {
+    doc.text(`Email: ${invoice.company.email}`, 160, companyY, {
+      width: 180,
+      align: "center",
+    })
+    companyY += 10
+  }
+
+  if (invoice.company?.phone) {
+    doc.text(`Teléfono: ${invoice.company.phone}`, 160, companyY, {
+      width: 180,
+      align: "center",
+    })
+    companyY += 10
+  }
+
+  if (invoice.company?.address) {
+    doc.text(`Dirección: ${invoice.company.address}`, 160, companyY, {
+      width: 180,
+      align: "center",
+    })
+    companyY += 12
+  }
+
+  if (invoice.orderResolution) {
+    doc.font('Helvetica-Bold')
+    doc.fontSize(9)
+    doc.text(`Resolución: ${invoice.orderResolution}`, 160, companyY, {
+      width: 180,
+      align: "center",
+    })
+  }
+
   /* =====================================================
      INFO FACTURA
   ===================================================== */
 
   doc.fontSize(10)
-  doc.text(`Prefijo: ${invoice.orderPrefix}`, 380, 90)
-  doc.text(`Número: ${invoice.orderId}`, 380, 105)
-  doc.text(`Fecha: ${formatDate(invoice.orderDate)}`, 380, 120)
+  doc.text(`Prefijo: ${invoice.orderPrefix}`, 400, 90)
+  doc.text(`Número: ${invoice.orderId}`, 400, 105)
+  doc.text(`Fecha: ${formatDate(invoice.orderDate)}`, 400, 120)
   const vencimientoMostrar = invoice.dueDate
   ? formatDate(invoice.dueDate)
   : invoice.vencimiento || ''
 
-doc.text(`Vencimiento: ${vencimientoMostrar}`, 380, 135)
+doc.text(`Vencimiento: ${vencimientoMostrar}`, 400, 135)
 
   /* =====================================================
      CLIENTE

@@ -274,6 +274,45 @@ export async function updateInvoice(id, data) {
     }
 
     // =====================================
+    // 🔹 CASO ESPECIAL: SOLO ACTUALIZAR STATUS (Y CAMPOS SIMPLES)
+    // =====================================
+    
+    if (!data.items || data.items.length === 0) {
+      // Actualización simple sin recalcular items
+      const updateData = {}
+
+      // Campos que se pueden actualizar sin items
+      if (data.status !== undefined) updateData.status = data.status
+      if (data.orderReceiverName !== undefined) updateData.orderReceiverName = data.orderReceiverName
+      if (data.orderReceiverNit !== undefined) updateData.orderReceiverNit = data.orderReceiverNit
+      if (data.orderReceiverAddress !== undefined) updateData.orderReceiverAddress = data.orderReceiverAddress
+      if (data.orderReceiverPhone !== undefined) updateData.orderReceiverPhone = data.orderReceiverPhone
+      if (data.orderReceiverEmail !== undefined) updateData.orderReceiverEmail = data.orderReceiverEmail
+      if (data.sellerId !== undefined) updateData.sellerId = data.sellerId
+      if (data.note !== undefined) updateData.note = data.note
+      if (data.cufe !== undefined) updateData.cufe = data.cufe
+      if (data.orderResolution !== undefined) updateData.orderResolution = data.orderResolution
+      if (data.paymentForms !== undefined) updateData.paymentForms = data.paymentForms
+      if (data.paymentMethods !== undefined) updateData.paymentMethods = data.paymentMethods
+      if (data.orderAmountPaid !== undefined) updateData.orderAmountPaid = data.orderAmountPaid
+      if (data.orderDate !== undefined) updateData.orderDate = new Date(data.orderDate)
+      if (data.userId !== undefined) updateData.userId = data.userId
+
+      updateData.updatedAt = new Date()
+
+      return await tx.invoice.update({
+        where: { id },
+        data: updateData,
+        include: {
+          company: true,
+          details: {
+            include: { product: true }
+          }
+        }
+      })
+    }
+
+    // =====================================
     // 2️⃣ DEVOLVER STOCK ANTERIOR
     // =====================================
 
@@ -404,7 +443,7 @@ export async function updateInvoice(id, data) {
         orderReceiverNit: data.orderReceiverNit,
         orderReceiverAddress: data.orderReceiverAddress,
         orderReceiverPhone: data.orderReceiverPhone || "",
-        orderReceiverEmail: data.orderReceiver || "",
+        orderReceiverEmail: data.orderReceiverEmail || "",
         sellerId: data.sellerId || null,
 
         orderSubtotalBeforeTax: totalBeforeTax,

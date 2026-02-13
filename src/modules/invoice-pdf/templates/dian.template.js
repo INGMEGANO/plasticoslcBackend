@@ -19,10 +19,62 @@ export function dianTemplate(doc, invoice, logo, qrImage) {
     doc.image(logo, 40, yStart, { fit: [110, 80] });
   }
 
+  // Información de la compañía - centrada
+  let companyY = yStart + 10;
+  doc.font("Helvetica-Bold").fontSize(11);
+  if (invoice.company) {
+    doc.text(invoice.company.businessName || "", 170, companyY, {
+      width: 200,
+      align: "center",
+    });
+    companyY += 12;
+  }
+
+  doc.font("Helvetica").fontSize(9);
+  if (invoice.company?.nit) {
+    doc.text(`NIT: ${invoice.company.nit}`, 170, companyY, {
+      width: 200,
+      align: "center",
+    });
+    companyY += 10;
+  }
+
+  if (invoice.company?.email) {
+    doc.text(`Email: ${invoice.company.email}`, 170, companyY, {
+      width: 200,
+      align: "center",
+    });
+    companyY += 10;
+  }
+
+  if (invoice.company?.phone) {
+    doc.text(`Teléfono: ${invoice.company.phone}`, 170, companyY, {
+      width: 200,
+      align: "center",
+    });
+    companyY += 10;
+  }
+
+  if (invoice.company?.address) {
+    doc.text(`Dirección: ${invoice.company.address}`, 170, companyY, {
+      width: 200,
+      align: "center",
+    });
+    companyY += 12;
+  }
+
+  if (invoice.orderResolution) {
+    doc.font("Helvetica-Bold").fontSize(9);
+    doc.text(`Resolución: ${invoice.orderResolution}`, 170, companyY, {
+      width: 200,
+      align: "center",
+    });
+  }
+
   doc
     .fontSize(16)
     .font("Helvetica-Bold")
-    .text("FACTURA ELECTRÓNICA DE VENTA", 0, yStart + 20, {
+    .text("FACTURA ELECTRÓNICA DE VENTA", 0, 110, {
       align: "center",
     });
 
@@ -33,18 +85,18 @@ export function dianTemplate(doc, invoice, logo, qrImage) {
     : invoice.vencimiento || "";
 
   doc
-    .text(`Prefijo: ${invoice.orderPrefix || ""}`, pageWidth - 150, yStart + 10)
-    .text(`Número: ${invoice.orderId || ""}`, pageWidth - 150, yStart + 25)
-    .text(`Fecha: ${formatDate(invoice.orderDate)}`, pageWidth - 150, yStart + 40)
-    .text(`Vence: ${vencimientoMostrar}`, pageWidth - 150, yStart + 55);
+    .text(`Prefijo: ${invoice.orderPrefix || ""}`, pageWidth - 120, yStart + 10)
+    .text(`Número: ${invoice.orderId || ""}`, pageWidth - 120, yStart + 25)
+    .text(`Fecha: ${formatDate(invoice.orderDate)}`, pageWidth - 120, yStart + 40)
+    .text(`Vence: ${vencimientoMostrar}`, pageWidth - 120, yStart + 55);
 
-  doc.moveTo(40, 110).lineTo(pageWidth - 40, 110).stroke();
+  doc.moveTo(40, 130).lineTo(pageWidth - 40, 130).stroke();
 
   /* =====================================
      DATOS CLIENTE
   ===================================== */
 
-  let y = 120;
+  let y = 140;
 
   doc.font("Helvetica-Bold").fontSize(11).text("DATOS DEL CLIENTE", 40, y);
 
@@ -216,7 +268,7 @@ doc.text(
   ===================================== */
 
   if (qrImage) {
-    doc.image(qrImage, 40, 650, { width: 90 });
+    doc.image(qrImage, 40, 630, { width: 90 });
   }
 
   doc.fontSize(8).font("Helvetica");
