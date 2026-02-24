@@ -15,6 +15,30 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 
+// ✅ FUNCIÓN MARCA DE AGUA (NO ALTERA NADA MÁS)
+function addWatermark(doc, logoPath) {
+  if (!logoPath) return
+
+  const pageWidth = doc.page.width
+  const pageHeight = doc.page.height
+
+  const watermarkWidth = 450
+
+  const x = (pageWidth - watermarkWidth) / 2
+  const y = (pageHeight - watermarkWidth) / 2
+
+  doc.save()
+
+  doc.opacity(0.06) // Transparencia suave
+
+  doc.image(logoPath, x, y, {
+    width: watermarkWidth
+  })
+
+  doc.restore()
+}
+
+
 
 export async function generateInvoicePDF(invoiceId, style = 'modern') {
   const invoice = await prisma.invoice.findUnique({
@@ -38,35 +62,32 @@ export async function generateInvoicePDF(invoiceId, style = 'modern') {
     margin: 40
   })
 
-  // Generar QR (URL escalable DIAN)
   const qrData = `https://catalogo-vpfe.dian.gov.co/document/searchqr?documentkey=${invoice.cufe || 'SIN-CUFE'}`
   const qrImage = await generateQR(qrData)
 
-  // Cargar logo
-  // Cargar logo de forma segura
- const companyDir = path.join(
-  process.cwd(),
-  'uploads',
-  'company'
-)
-
-let logo = null
-
-if (fs.existsSync(companyDir)) {
-  const files = fs.readdirSync(companyDir)
-
-  const logoFile = files.find(file =>
-    /^logo\.(png|jpg|jpeg|webp)$/i.test(file)
+  const companyDir = path.join(
+    process.cwd(),
+    'uploads',
+    'company'
   )
 
-  if (logoFile) {
-    logo = path.join(companyDir, logoFile)
+  let logo = null
+
+  if (fs.existsSync(companyDir)) {
+    const files = fs.readdirSync(companyDir)
+
+    const logoFile = files.find(file =>
+      /^logo\.(png|jpg|jpeg|webp)$/i.test(file)
+    )
+
+    if (logoFile) {
+      logo = path.join(companyDir, logoFile)
+    }
   }
-}
 
+  // ✅ AGREGADO: Marca de agua antes del contenido
+  addWatermark(doc, logo)
 
-
-  // Seleccionar template
   if (style === 'dian') {
     dianTemplate(doc, invoice, logo, qrImage)
   } else {
@@ -77,6 +98,7 @@ if (fs.existsSync(companyDir)) {
 
   return doc
 }
+
 
 
 export async function generateInvoicePDFBuffer(invoiceId, style = 'modern') {
@@ -110,6 +132,9 @@ export async function generateInvoicePDFBuffer(invoiceId, style = 'modern') {
   )
 
   const logo = fs.existsSync(logoPath) ? logoPath : null
+
+  // ✅ AGREGADO: Marca de agua antes del contenido
+  addWatermark(doc, logo)
 
   if (style === 'dian') {
     dianTemplate(doc, invoice, logo, qrImage)
