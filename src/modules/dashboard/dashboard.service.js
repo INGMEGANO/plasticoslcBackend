@@ -266,3 +266,299 @@ export async function getMonthlySalesChart() {
   await prisma.$disconnect()
   return results
 }
+
+
+// -------------------------
+// VENTAS DE HOY
+// -------------------------
+export async function getSalesToday() {
+
+  const start = new Date()
+  start.setHours(0,0,0,0)
+
+  const end = new Date()
+  end.setHours(23,59,59,999)
+
+  const invoices = await prisma.invoice.findMany({
+    where: {
+      createdAt: {
+        gte: start,
+        lte: end
+      },
+      status: {
+        not: "CANCELLED"
+      }
+    }
+  })
+
+  const total = invoices.reduce(
+    (sum, i) => sum + Number(i.orderTotalAmountDue),
+    0
+  )
+
+  return {
+    totalSales: total,
+    invoices: invoices.length
+  }
+
+}
+
+// -------------------------
+// VENTAS DEL MES
+// -------------------------
+export async function getSalesMonth() {
+
+  const now = new Date()
+
+  const start = new Date(now.getFullYear(), now.getMonth(), 1)
+
+  const invoices = await prisma.invoice.findMany({
+    where: {
+      createdAt: {
+        gte: start
+      },
+      status: {
+        not: "CANCELLED"
+      }
+    }
+  })
+
+  const total = invoices.reduce(
+    (sum, i) => sum + Number(i.orderTotalAmountDue),
+    0
+  )
+
+  return {
+    totalSales: total,
+    invoices: invoices.length
+  }
+
+}
+
+// -------------------------
+// CARTERA TOTAL
+// -------------------------
+export async function getAccountsReceivable() {
+
+  const invoices = await prisma.invoice.findMany({
+    where: {
+      status: {
+        not: "CANCELLED"
+      }
+    },
+    include: {
+      payments: true
+    }
+  })
+
+  let total = 0
+
+  for (const inv of invoices) {
+
+    const paid = inv.payments.reduce(
+      (sum, p) => sum + Number(p.amount),
+      0
+    )
+
+    const balance = inv.orderTotalAmountDue - paid
+
+    if (balance > 0)
+      total += balance
+
+  }
+
+  return {
+    totalAccountsReceivable: total
+  }
+
+}
+
+// -------------------------
+// PRODUCTOS MAS VENDIDOS
+// -------------------------
+export async function getTopProducts() {
+
+  const items = await prisma.invoiceDetail.findMany({
+    include: {
+      product: true
+    }
+  })
+
+  const map = {}
+
+  for (const item of items) {
+
+    if (!item.product) continue
+
+    if (!map[item.productId]) {
+
+      map[item.productId] = {
+        product: item.product.name,
+        quantity: 0
+      }
+
+    }
+
+    map[item.productId].quantity += Number(item.orderItemQuantity || 0)
+
+  }
+
+  return Object.values(map)
+    .sort((a,b)=> b.quantity - a.quantity)
+    .slice(0,5)
+
+}
+// -------------------------
+// CASH FLOW
+// -------------------------
+export async function getCashFlow() {
+
+  const payments = await prisma.payment.findMany()
+
+  const total = payments.reduce(
+    (sum, p) => sum + Number(p.amount),
+    0
+  )
+
+  return {
+    totalIncome: total
+  }
+
+}
+
+export async function getFullDashboard() {
+
+  const todayStart = new Date()
+  todayStart.setHours(0,0,0,0)
+
+  const todayEnd = new Date()
+  todayEnd.setHours(23,59,59,999)
+
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+
+  // =========================
+  // FACTURAS
+  // =========================
+
+  const invoices = await prisma.invoice.findMany({
+    where: {
+      status: { not: "CANCELLED" }
+    },
+    include: {
+      payments: true,
+      details: true
+    }
+  })
+
+  // =========================
+  // VENTAS HOY
+  // =========================
+
+  const salesTodayInvoices = invoices.filter(i =>
+    i.createdAt >= todayStart && i.createdAt <= todayEnd
+  )
+
+  const salesToday = salesTodayInvoices.reduce(
+    (sum,i)=> sum + Number(i.orderTotalAmountDue || 0),
+    0
+  )
+
+  // =========================
+  // VENTAS MES
+  // =========================
+
+  const salesMonthInvoices = invoices.filter(i =>
+    i.createdAt >= monthStart
+  )
+
+  const salesMonth = salesMonthInvoices.reduce(
+    (sum,i)=> sum + Number(i.orderTotalAmountDue || 0),
+    0
+  )
+
+  // =========================
+  // CARTERA
+  // =========================
+
+  let accountsReceivable = 0
+
+  for(const inv of invoices){
+
+    const paid = inv.payments.reduce(
+      (sum,p)=> sum + Number(p.amount),
+      0
+    )
+
+    const balance = Number(inv.orderTotalAmountDue || 0) - paid
+
+    if(balance > 0)
+      accountsReceivable += balance
+  }
+
+  // =========================
+  // FACTURAS VENCIDAS
+  // =========================
+
+  const overdueInvoices = invoices.filter(i =>
+    i.dueDate && new Date(i.dueDate) < now
+  ).length
+
+  // =========================
+  // TOP PRODUCTOS
+  // =========================
+
+  const productMap = {}
+
+  for(const inv of invoices){
+
+    for(const item of inv.details){
+
+      if(!item.productId) continue
+
+      if(!productMap[item.productId]){
+
+        productMap[item.productId] = {
+          productId: item.productId,
+          quantity: 0
+        }
+
+      }
+
+      productMap[item.productId].quantity += Number(item.orderItemQuantity || 0)
+
+    }
+
+  }
+
+  const topProducts = Object.values(productMap)
+    .sort((a,b)=> b.quantity - a.quantity)
+    .slice(0,5)
+
+  // =========================
+  // CASH FLOW
+  // =========================
+
+  const payments = await prisma.payment.findMany()
+
+  const cashFlow = payments.reduce(
+    (sum,p)=> sum + Number(p.amount),
+    0
+  )
+
+  return {
+
+    salesToday,
+    salesMonth,
+
+    accountsReceivable,
+
+    overdueInvoices,
+
+    cashFlow,
+
+    topProducts
+
+  }
+
+}

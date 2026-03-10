@@ -34,6 +34,10 @@ import invoicePdfRoutes from './modules/invoice-pdf/invoice-pdf.routes.js'
 
 import reportssalesRoutes from "./modules/reports/sales/sales.routes.js"
 
+import accountsReceivableRoutes from "./modules/invoices/accountsReceivable.routes.js"
+
+import paymentRoutes from "./modules/payments/payment.routes.js"
+
 dotenv.config()
 
 const app = express()
@@ -78,6 +82,8 @@ app.use('/api/invoice-documents', invoicePdfRoutes)
 
 app.use("/api/reports-sales", reportssalesRoutes)
 
+app.use("/api", accountsReceivableRoutes)
 
+app.use("/api", paymentRoutes)
 
 export default app

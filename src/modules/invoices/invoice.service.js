@@ -171,7 +171,7 @@ export async function createInvoice(data) {
         orderTotalAfterTax: totalAfterTax,
         orderTotalAmountDue: grandTotal,
 
-        orderAmountPaid: data.orderAmountPaid || grandTotal,
+        orderAmountPaid: data.orderAmountPaid ?? grandTotal,
         dueDate: calculatedDueDate
       }
     })
@@ -262,6 +262,21 @@ export async function updateInvoice(id, data) {
 
     if (existing.dianStatus === "APPROVED")
       throw new Error("No se puede modificar una factura aprobada por DIAN")
+
+    // ❌ factura pagada
+    if (existing.status === "PAID")
+      throw new Error("No se puede modificar una factura pagada")
+
+    // ❌ factura anulada
+    if (existing.status === "CANCELLED")
+      throw new Error("No se puede modificar una factura cancelada")
+
+    const payments = await tx.payment.count({
+      where: { invoiceId: id }
+    })
+
+    if (payments > 0)
+      throw new Error("No se puede modificar una factura con pagos registrados")
 
     // 1️⃣.5 VALIDAR USUARIO (si viene en los datos)
     if (data.userId) {
@@ -459,7 +474,7 @@ export async function updateInvoice(id, data) {
         orderTotalAfterTax: totalAfterTax,
         orderTotalAmountDue: grandTotal,
 
-        orderAmountPaid: data.orderAmountPaid || grandTotal,
+        orderAmountPaid: data.orderAmountPaid ?? grandTotal,
 
         // 🔹 INFORMACIÓN ADICIONAL
         orderDate: data.orderDate ? new Date(data.orderDate) : undefined,
@@ -721,4 +736,77 @@ export async function cancelInvoice(prefix, number) {
 
     return { message: "Factura anulada correctamente" }
   })
+}
+
+
+// ==========================================
+// SERVICIO
+// Calcula el saldo real de una factura
+// ==========================================
+export async function getInvoiceBalance(invoiceId) {
+
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    include: {
+      payments: true
+    }
+  });
+
+  // total pagado
+  const totalPaid = invoice.payments.reduce((sum, payment) => {
+    return sum + Number(payment.amount);
+  }, 0);
+
+  // total factura
+  const totalInvoice = Number(invoice.orderTotalAfterTax);
+
+  // saldo pendiente
+  const balance = totalInvoice - totalPaid;
+
+  return {
+    invoiceId: invoice.id,
+    total: totalInvoice,
+    paid: totalPaid,
+    balance: balance
+  };
+}
+
+
+
+
+// ==========================================
+// ACTUALIZA EL ESTADO DE LA FACTURA
+// SEGÚN LOS PAGOS REGISTRADOS
+// ==========================================
+
+
+
+export async function updateInvoiceStatus(invoiceId) {
+
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    include: { payments: true }
+  });
+
+  const totalPaid = invoice.payments.reduce((sum, p) => {
+    return sum + Number(p.amount);
+  }, 0);
+
+  const totalInvoice = Number(invoice.orderTotalAfterTax);
+
+  let status = "PENDING";
+
+  if (totalPaid === 0) {
+    status = "PENDING";
+  } else if (totalPaid < totalInvoice) {
+    status = "PARTIAL";
+  } else {
+    status = "PAID";
+  }
+
+  await prisma.invoice.update({
+    where: { id: invoiceId },
+    data: { status }
+  });
+
 }

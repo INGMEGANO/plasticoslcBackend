@@ -20,6 +20,20 @@ model User {
   invoicesCreated Invoice[]
   invoicesSold    Invoice[] @relation("InvoiceSeller")
 
+  // ===============================
+  // NUEVAS RELACIONES (AUDITORÍA)
+  // ===============================
+
+  inventoryMovements InventoryMovement[] // movimientos de inventario hechos por el usuario
+
+  payments Payment[] // pagos registrados por el usuario
+
+  cashMovements CashMovement[] // movimientos de caja
+
+  creditNotes CreditNote[] // notas crédito creadas
+
+  priceChanges ProductPriceHistory[] // cambios de precio realizados
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -96,6 +110,7 @@ model Product {
   movements       InventoryMovement[]
   invoicesDetails InvoiceDetail[]
   purchaseDetails PurchaseDetail[]
+  priceHistory    ProductPriceHistory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -114,6 +129,20 @@ model InventoryMovement {
 
   product Product @relation(fields: [productId], references: [id])
 
+  // =========================
+  // AUDITORÍA
+  // =========================
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  // =========================
+  // MULTIEMPRESA
+  // =========================
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
   createdAt DateTime @default(now())
 }
 
@@ -128,15 +157,14 @@ enum InventoryType {
   ADJUSTMENT
 }
 
-
 enum InvoiceStatus {
-  DRAFT       // Borrador
-  SENT        // enviada a cliente pendiente de pago
-  PENDING     // Emitida pendiente de pago
-  PARTIAL     // Pago parcial
-  PAID        // Pagada
-  CANCELLED   // Anulada
-  OVERDUE     // Vencida
+  DRAFT // Borrador
+  SENT // enviada a cliente pendiente de pago
+  PENDING // Emitida pendiente de pago
+  PARTIAL // Pago parcial
+  PAID // Pagada
+  CANCELLED // Anulada
+  OVERDUE // Vencida
 }
 
 enum DianStatus {
@@ -148,56 +176,60 @@ enum DianStatus {
 }
 
 model Invoice {
-  status                InvoiceStatus    @default(PENDING)
+  status InvoiceStatus @default(PENDING)
 
   moduleId               String?
-  createdAt              DateTime        @default(now())
-  updatedAt              DateTime        @updatedAt 
-  autoretencion          Decimal?        @default(0.00000) @db.Decimal(10, 5)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  autoretencion          Decimal? @default(0.00000) @db.Decimal(10, 5)
   ciiu                   Int?
-  cufe                   String?         @default("") @db.VarChar(100)
+  cufe                   String?  @default("") @db.VarChar(100)
   note                   String?
-  orderAmountPaid        Decimal         @db.Decimal(10, 2)
-  orderDate              DateTime        @default(now()) @db.Timestamp(0)
+  orderAmountPaid        Decimal  @db.Decimal(10, 2)
+  orderDate              DateTime @default(now()) @db.Timestamp(0)
   orderId                Int
-  orderPrefix            String          @db.VarChar(50)
+  orderPrefix            String   @db.VarChar(50)
   orderReceiverAddress   String
-  orderReceiverName      String          @db.VarChar(250)
-  orderReceiverNit       String          @db.VarChar(50)
-  orderReceiverPhone     String          @default("") @db.VarChar(50)
-  orderReceiverEmail     String?         @db.VarChar(250)
-  orderResolution        String?         @db.VarChar(50)
-  orderSubtotalBeforeTax Decimal         @default(0.00) @db.Decimal(10, 2)
-  orderTaxPer            String          @default("19") @db.VarChar(250)
-  orderTotalAfterTax     Decimal         @db.Decimal(14, 2)
-  orderTotalAmountDue    Decimal?        @db.Decimal(10, 2)
-  orderTotalBeforeTax    Decimal         @db.Decimal(10, 2)
-  orderTotalDesc         Decimal         @default(0.00) @db.Decimal(10, 2)
-  orderTotalTax          Decimal         @db.Decimal(10, 2)
-  paymentForms           Int?            @default(0)
-  paymentMethods         Int?            @default(0)
-  plazoPago              String?         @default("0") @db.VarChar(50)
-  reteica                Decimal?        @default(0.00000) @db.Decimal(10, 5)
-  reteiva                Decimal?        @default(0.00000) @db.Decimal(10, 5)
-  retencion              String?         @default("RTE00") @db.VarChar(50)
+  orderReceiverName      String   @db.VarChar(250)
+  orderReceiverNit       String   @db.VarChar(50)
+  orderReceiverPhone     String   @default("") @db.VarChar(50)
+  orderReceiverEmail     String?  @db.VarChar(250)
+  orderResolution        String?  @db.VarChar(50)
+  orderSubtotalBeforeTax Decimal  @default(0.00) @db.Decimal(10, 2)
+  orderTaxPer            String   @default("19") @db.VarChar(250)
+  orderTotalAfterTax     Decimal  @db.Decimal(14, 2)
+  orderTotalAmountDue    Decimal? @db.Decimal(10, 2)
+  orderTotalBeforeTax    Decimal  @db.Decimal(10, 2)
+  orderTotalDesc         Decimal  @default(0.00) @db.Decimal(10, 2)
+  orderTotalTax          Decimal  @db.Decimal(10, 2)
+  paymentForms           Int?     @default(0)
+  paymentMethods         Int?     @default(0)
+  plazoPago              String?  @default("0") @db.VarChar(50)
+  reteica                Decimal? @default(0.00000) @db.Decimal(10, 5)
+  reteiva                Decimal? @default(0.00000) @db.Decimal(10, 5)
+  retencion              String?  @default("RTE00") @db.VarChar(50)
   userId                 String
-  vencimiento            String?         @default("0") @db.VarChar(50)
+  vencimiento            String?  @default("0") @db.VarChar(50)
 
   dueDate DateTime? @db.Timestamp(0)
   paidAt  DateTime? @db.Timestamp(0)
 
-  id                     Int             @id @default(autoincrement())
-  details                InvoiceDetail[]
+  id      Int             @id @default(autoincrement())
+  details InvoiceDetail[]
 
-  dianStatus String?                     @default("NOT_SENT") @db.VarChar(20)
+  dianStatus String? @default("NOT_SENT") @db.VarChar(20)
 
   sellerId String?
-  seller   User? @relation("InvoiceSeller", fields: [sellerId], references: [id])
+  seller   User?   @relation("InvoiceSeller", fields: [sellerId], references: [id])
 
-  user     User  @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
+
+  payments Payment[]
+
+  creditNotes CreditNote[]
 
   @@unique([orderPrefix, orderId])
   @@map("invoices")
@@ -235,7 +267,7 @@ model Resolution {
   toNumber      Int
   active        Boolean  @default(true)
   createdAt     DateTime @default(now())
-  
+
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
 
@@ -247,7 +279,6 @@ enum PurchaseStatus {
   ACTIVE
   CANCELLED
 }
-
 
 model Purchase {
   id            Int      @id @default(autoincrement())
@@ -280,36 +311,44 @@ model PurchaseDetail {
 }
 
 model Supplier {
-  id        String   @id @default(cuid())
-  name      String
-  nit       String?  @unique
-  email     String?
-  phone     String?
-  address   String?
-  active    Boolean  @default(true)
+  id      String  @id @default(cuid())
+  name    String
+  nit     String? @unique
+  email   String?
+  phone   String?
+  address String?
+  active  Boolean @default(true)
+
+  // NUEVO
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Customer {
-  id        String   @id @default(cuid())
-  name      String
-  nit       String?  @unique
-  email     String?
-  phone     String?
-  address   String?
-  active    Boolean  @default(true)
+  id      String  @id @default(cuid())
+  name    String
+  nit     String? @unique
+  email   String?
+  phone   String?
+  address String?
+  active  Boolean @default(true)
+
+  // NUEVO
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Company {
-  id                  String  @id @default(uuid())
+  id String @id @default(uuid())
 
   // Información legal
-  businessName        String  // Razón social
+  businessName        String // Razón social
   tradeName           String? // Nombre comercial
   nit                 String  @unique
   dv                  String? // Dígito verificación
@@ -317,27 +356,200 @@ model Company {
   legalRepId          String? // Cédula representante
 
   // Información fiscal
-  taxRegime           String? // Régimen (Simplificado, Responsable IVA, etc)
-  taxResponsibility   String? // R-99-PN, R-99-PJ
+  taxRegime         String? // Régimen (Simplificado, Responsable IVA, etc)
+  taxResponsibility String? // R-99-PN, R-99-PJ
 
   // Contacto
-  email               String?
-  phone               String?
-  address             String?
-  city                String?
-  department          String?
-  country             String? @default("Colombia")
+  email      String?
+  phone      String?
+  address    String?
+  city       String?
+  department String?
+  country    String? @default("Colombia")
 
   // Branding
-  logo                String?
-  primaryColor        String?
+  logo         String?
+  primaryColor String?
 
-  active              Boolean @default(true)
+  active Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relaciones futuras
-  invoices     Invoice[]
-  resolutions  Resolution[]
+  invoices    Invoice[]
+  resolutions Resolution[]
+
+  // ===============================
+  // NUEVAS RELACIONES
+  // ===============================
+
+  customers Customer[]
+  suppliers Supplier[]
+
+  inventoryMovements InventoryMovement[]
+
+  payments Payment[]
+
+  cashMovements CashMovement[]
+
+  creditNotes CreditNote[]
+}
+
+// ================================
+// NUEVO ENUM
+// Métodos de pago soportados
+// Se usará en la tabla Payment
+// ================================
+
+enum PaymentMethod {
+  CASH // efectivo
+  TRANSFER // transferencia bancaria
+  CARD // tarjeta
+  NEQUI // billetera digital
+  DAVIPLATA // billetera digital
+  OTHER // otros métodos
+}
+
+// ===================================================
+// NUEVA TABLA
+// Registro de pagos realizados a una factura
+// Permite pagos parciales y control de cartera
+// ===================================================
+
+model Payment {
+  // ID único del pago
+  id String @id @default(cuid())
+
+  // =========================
+  // RELACIÓN CON FACTURA
+  // =========================
+
+  invoiceId Int
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+
+  // =========================
+  // DATOS DEL PAGO
+  // =========================
+
+  amount Decimal @db.Decimal(14, 2) // valor pagado
+
+  method PaymentMethod // método de pago
+
+  reference String? // referencia bancaria o comprobante
+
+  note String? // observaciones del pago
+
+  // =========================
+  // AUDITORÍA
+  // =========================
+
+  createdBy String? // usuario que registró el pago
+  user      User?   @relation(fields: [createdBy], references: [id])
+
+  // =========================
+  // MULTIEMPRESA
+  // =========================
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+// =====================================
+// NUEVO ENUM
+// Tipos de movimiento de caja
+// =====================================
+
+enum CashMovementType {
+  OPEN // apertura de caja
+  IN // ingreso dinero
+  OUT // salida dinero
+  CLOSE // cierre de caja
+}
+
+// =====================================
+// NUEVA TABLA
+// Movimientos de caja
+// =====================================
+
+model CashMovement {
+  id String @id @default(cuid())
+
+  type CashMovementType
+
+  amount Decimal @db.Decimal(14, 2)
+
+  reference String? // referencia del movimiento
+  note      String?
+
+  // usuario que hizo el movimiento
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  // empresa
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+// =====================================
+// NUEVA TABLA
+// Notas crédito para devoluciones
+// =====================================
+
+model CreditNote {
+  id Int @id @default(autoincrement())
+
+  invoiceId Int
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+
+  reason String // motivo de la nota
+
+  amount Decimal @db.Decimal(14, 2)
+
+  // usuario que creó la nota
+  createdBy String?
+  user      User?   @relation(fields: [createdBy], references: [id])
+
+  // empresa
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model CreditNoteDetail {
+
+  id Int @id @default(autoincrement())
+
+  creditNoteId Int
+  creditNote CreditNote @relation(fields: [creditNoteId], references: [id])
+
+  productId String
+  quantity Float
+  price Float
+
+}
+
+// =====================================
+// NUEVA TABLA
+// Historial de cambios de precio
+// =====================================
+
+model ProductPriceHistory {
+  id String @id @default(cuid())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  oldPrice Float
+  newPrice Float
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
 }
