@@ -518,20 +518,20 @@ model CreditNote {
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
 
+  details CreditNoteDetail[]
+
   createdAt DateTime @default(now())
 }
 
 model CreditNoteDetail {
-
   id Int @id @default(autoincrement())
 
   creditNoteId Int
-  creditNote CreditNote @relation(fields: [creditNoteId], references: [id])
+  creditNote   CreditNote @relation(fields: [creditNoteId], references: [id])
 
   productId String
-  quantity Float
-  price Float
-
+  quantity  Float
+  price     Float
 }
 
 // =====================================
