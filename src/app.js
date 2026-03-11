@@ -41,6 +41,7 @@ import paymentRoutes from "./modules/payments/payment.routes.js"
 
 import inventoryRoutes from "./modules/inventory/inventory.routes.js"
 
+import reportesRoutes from "./modules/reports/reportes.routes.js"
 
 
 dotenv.config()
@@ -94,5 +95,7 @@ app.use("/api", paymentRoutes)
 app.use("/api", inventoryRoutes)
 
 
+
+app.use("/api", reportesRoutes)
 
 export default app

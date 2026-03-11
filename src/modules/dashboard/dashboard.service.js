@@ -447,7 +447,11 @@ export async function getFullDashboard() {
     },
     include: {
       payments: true,
-      details: true
+      details: {
+        include: {
+          product: true
+        }
+      }
     }
   })
 
@@ -520,6 +524,7 @@ export async function getFullDashboard() {
 
         productMap[item.productId] = {
           productId: item.productId,
+          productName: item.product?.name || "Producto",
           quantity: 0
         }
 

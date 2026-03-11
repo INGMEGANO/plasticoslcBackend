@@ -104,7 +104,7 @@ model Product {
   type        ProductType @default(PRODUCT)
   description String?
   price       Float
-  cost        Float       @default(0)
+  cost        Float?       @default(0)
   stock       Int         @default(0)
   active      Boolean     @default(true)
 
@@ -553,4 +553,27 @@ model ProductPriceHistory {
   user   User?   @relation(fields: [userId], references: [id])
 
   createdAt DateTime @default(now())
+}
+
+
+model Reporte {
+  id          Int        @id @default(autoincrement())
+  nombre      String
+  descripcion String?
+  icon        String?
+  descargas   Descarga[]
+  createdAt   DateTime   @default(now())
+
+  @@map("reportes")
+}
+
+model Descarga {
+  id        Int      @id @default(autoincrement())
+  tipo      String
+  label     String
+  endpoint  String
+  reporteId Int
+  reporte   Reporte  @relation(fields: [reporteId], references: [id])
+
+  @@map("reportes_descargas")
 }
