@@ -38,6 +38,11 @@ import accountsReceivableRoutes from "./modules/invoices/accountsReceivable.rout
 
 import paymentRoutes from "./modules/payments/payment.routes.js"
 
+
+import inventoryRoutes from "./modules/inventory/inventory.routes.js"
+
+
+
 dotenv.config()
 
 const app = express()
@@ -85,5 +90,9 @@ app.use("/api/reports-sales", reportssalesRoutes)
 app.use("/api", accountsReceivableRoutes)
 
 app.use("/api", paymentRoutes)
+
+app.use("/api", inventoryRoutes)
+
+
 
 export default app

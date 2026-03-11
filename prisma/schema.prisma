@@ -104,6 +104,7 @@ model Product {
   type        ProductType @default(PRODUCT)
   description String?
   price       Float
+  cost        Float       @default(0)
   stock       Int         @default(0)
   active      Boolean     @default(true)
 
