@@ -113,16 +113,16 @@ export function modernTemplate(doc, invoice, logo, qrImage) {
 
   doc.fontSize(10)
 
-  doc.text(`Prefijo: ${invoice.orderPrefix}`, 450, 90)
-  doc.text(`Número: ${invoice.orderId}`, 450, 105)
-  doc.text(`Fecha: ${formatDate(invoice.orderDate)}`, 450, 120)
+  doc.text(`Prefijo: ${invoice.orderPrefix}`, 480, 90)
+  doc.text(`Número: ${invoice.orderId}`, 480, 105)
+  doc.text(`Fecha: ${formatDate(invoice.orderDate)}`, 480, 120)
 
   const vencimientoMostrar =
     invoice.dueDate
       ? formatDate(invoice.dueDate)
       : invoice.vencimiento || ''
 
-  doc.text(`Vencimiento: ${vencimientoMostrar}`, 450, 135)
+  doc.text(`Vencimiento: ${vencimientoMostrar}`, 480, 135)
 
   /* =====================================================
      CLIENTE
@@ -243,7 +243,8 @@ export function modernTemplate(doc, invoice, logo, qrImage) {
   const totalPagar =
     totalConIva - totalRetenciones
 
-  doc.roundedRect(330, y, 220, 220, 6).stroke('#d1d5db')
+  doc.roundedRect(330, y, 250, 220, 6).stroke('#d1d5db')
+  
 
   let ty = y + 15
 
@@ -251,7 +252,7 @@ export function modernTemplate(doc, invoice, logo, qrImage) {
 
   const row = (label, value) => {
     doc.text(label, 340, ty)
-    doc.text(value, 450, ty, { width: 90, align: 'right' })
+    doc.text(value, 455, ty, { width: 90, align: 'right' })
     ty += 15
   }
 
@@ -259,13 +260,13 @@ export function modernTemplate(doc, invoice, logo, qrImage) {
   row('Descuentos:', `-$${formatMoney(descuentos)}`)
   row('IVA:', `$${formatMoney(iva)}`)
 
-  doc.moveTo(340, ty).lineTo(540, ty).stroke('#e5e7eb')
+  doc.moveTo(340, ty).lineTo(565, ty).stroke('#e5e7eb')
   ty += 10
 
   row('Total con IVA:', `$${formatMoney(totalConIva)}`)
 
   ty += 10
-  doc.moveTo(340, ty).lineTo(540, ty).stroke('#e5e7eb')
+  doc.moveTo(340, ty).lineTo(565, ty).stroke('#e5e7eb')
   ty += 10
 
   row(`Retefuente (${invoice.retencion || 0}%):`, `-$${formatMoney(retefuente)}`)
@@ -275,7 +276,7 @@ export function modernTemplate(doc, invoice, logo, qrImage) {
 
   ty += 10
 
-  doc.moveTo(340, ty).lineTo(540, ty).stroke('#111827')
+  doc.moveTo(340, ty).lineTo(565, ty).stroke('#111827')
 
   ty += 15
 

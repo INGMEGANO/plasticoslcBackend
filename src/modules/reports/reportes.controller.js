@@ -14,34 +14,64 @@ export const getReportes = async(req,res)=>{
   }
 }
 
-export const getReporte = async(req,res)=>{
-  try{
+export const createReporte = async (req, res) => {
+  try {
 
-    const data = await service.getReporte(req.params.id)
+    const { nombre, descripcion, icon, descargas } = req.body;
 
-    res.json({ ok:true, data })
+    const data = await prisma.reporte.create({
+      data: {
+        nombre,
+        descripcion,
+        icon,
+        descargas: {
+          create: descargas
+        }
+      },
+      include: {
+        descargas: true
+      }
+    });
 
-  }catch(error){
+    res.json({ ok: true, data });
 
-    res.status(500).json({ ok:false, message:error.message })
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      ok: false,
+      message: error.message
+    });
 
   }
-}
+};
 
-export const createReporte = async(req,res)=>{
-  try{
+export const getReporte = async (req, res) => {
+  try {
 
-    const data = await service.createReporte(req.body)
+    const data = await prisma.reporte.findMany({
+      include: {
+        descargas: true
+      },
+      orderBy: {
+        id: "asc"
+      }
+    });
 
-    res.json({ ok:true, data })
+    res.json({ ok: true, data });
 
-  }catch(error){
+  } catch (error) {
 
-    res.status(500).json({ ok:false, message:error.message })
+    console.error(error);
+
+    res.status(500).json({
+      ok: false,
+      message: error.message
+    });
 
   }
-}
-
+};
 export const updateReporte = async(req,res)=>{
   try{
 
