@@ -1,4 +1,5 @@
 export function modernTemplate(doc, invoice, logo, qrImage) {
+
   const formatMoney = value =>
     Number(value || 0).toLocaleString('es-CO', {
       minimumFractionDigits: 2
@@ -30,48 +31,69 @@ export function modernTemplate(doc, invoice, logo, qrImage) {
     doc.image(logo, 40, 75, { fit: [100, 70] })
   }
 
-  // Información de la compañía - centrada
+  /* =====================================================
+     INFORMACIÓN EMPRESA
+  ===================================================== */
+
   let companyY = 85
-  doc.fontSize(11)
+
   doc.font('Helvetica-Bold')
-  if (invoice.company) {
-    doc.text(invoice.company.businessName || "", 160, companyY, {
-      width: 180,
-      align: "center",
+
+  if (invoice.company?.tradeName) {
+    doc.fontSize(12)
+    doc.text(invoice.company.tradeName, 160, companyY, {
+      width: 220,
+      align: "center"
+    })
+    companyY += 14
+  }
+
+  if (invoice.company?.businessName) {
+    doc.fontSize(10)
+    doc.text(invoice.company.businessName, 160, companyY, {
+      width: 220,
+      align: "center"
     })
     companyY += 12
   }
 
   doc.font('Helvetica')
   doc.fontSize(9)
+
   if (invoice.company?.nit) {
-    doc.text(`NIT: ${invoice.company.nit}`, 160, companyY, {
-      width: 180,
-      align: "center",
+
+    const dv = invoice.company.dv
+      ? `-${invoice.company.dv}`
+      : ''
+
+    doc.text(`NIT: ${invoice.company.nit}${dv}`, 160, companyY, {
+      width: 220,
+      align: "center"
     })
+
     companyY += 10
   }
 
   if (invoice.company?.email) {
     doc.text(`Email: ${invoice.company.email}`, 160, companyY, {
-      width: 180,
-      align: "center",
+      width: 220,
+      align: "center"
     })
     companyY += 10
   }
 
   if (invoice.company?.phone) {
     doc.text(`Teléfono: ${invoice.company.phone}`, 160, companyY, {
-      width: 180,
-      align: "center",
+      width: 220,
+      align: "center"
     })
     companyY += 10
   }
 
   if (invoice.company?.address) {
     doc.text(`Dirección: ${invoice.company.address}`, 160, companyY, {
-      width: 180,
-      align: "center",
+      width: 220,
+      align: "center"
     })
     companyY += 12
   }
@@ -80,8 +102,8 @@ export function modernTemplate(doc, invoice, logo, qrImage) {
     doc.font('Helvetica-Bold')
     doc.fontSize(9)
     doc.text(`Resolución: ${invoice.orderResolution}`, 160, companyY, {
-      width: 180,
-      align: "center",
+      width: 220,
+      align: "center"
     })
   }
 
@@ -90,28 +112,33 @@ export function modernTemplate(doc, invoice, logo, qrImage) {
   ===================================================== */
 
   doc.fontSize(10)
-  doc.text(`Prefijo: ${invoice.orderPrefix}`, 400, 90)
-  doc.text(`Número: ${invoice.orderId}`, 400, 105)
-  doc.text(`Fecha: ${formatDate(invoice.orderDate)}`, 400, 120)
-  const vencimientoMostrar = invoice.dueDate
-  ? formatDate(invoice.dueDate)
-  : invoice.vencimiento || ''
 
-doc.text(`Vencimiento: ${vencimientoMostrar}`, 400, 135)
+  doc.text(`Prefijo: ${invoice.orderPrefix}`, 450, 90)
+  doc.text(`Número: ${invoice.orderId}`, 450, 105)
+  doc.text(`Fecha: ${formatDate(invoice.orderDate)}`, 450, 120)
+
+  const vencimientoMostrar =
+    invoice.dueDate
+      ? formatDate(invoice.dueDate)
+      : invoice.vencimiento || ''
+
+  doc.text(`Vencimiento: ${vencimientoMostrar}`, 450, 135)
 
   /* =====================================================
      CLIENTE
   ===================================================== */
 
-  doc.roundedRect(40, 150, 510, 90, 6).stroke('#d1d5db')
+  doc.roundedRect(40, 170, 535, 90, 6).stroke('#d1d5db')
 
-  doc.fontSize(12).text('Datos del Cliente', 50, 160)
+  doc.fontSize(12)
+  doc.text('Datos del Cliente', 50, 180)
 
   doc.fontSize(10)
-  doc.text(`Nombre: ${invoice.orderReceiverName}`, 50, 180)
-  doc.text(`NIT: ${invoice.orderReceiverNit}`, 50, 195)
-  doc.text(`Dirección: ${invoice.orderReceiverAddress}`, 50, 210)
-  doc.text(`Teléfono: ${invoice.orderReceiverPhone}`, 50, 225)
+
+  doc.text(`Nombre: ${invoice.orderReceiverName}`, 50, 200)
+  doc.text(`NIT: ${invoice.orderReceiverNit}`, 50, 215)
+  doc.text(`Dirección: ${invoice.orderReceiverAddress}`, 50, 230)
+  doc.text(`Teléfono: ${invoice.orderReceiverPhone}`, 50, 245)
 
   /* =====================================================
      TABLA
@@ -119,26 +146,40 @@ doc.text(`Vencimiento: ${vencimientoMostrar}`, 400, 135)
 
   let y = 270
 
-  doc.save()
-  doc.rect(40, y, 510, 25).fill('#f3f4f6')
-  doc.restore()
+  const drawTableHeader = () => {
 
-  doc.fontSize(10)
+    doc.save()
+    doc.rect(40, y, 510, 25).fill('#f3f4f6')
+    doc.restore()
 
-  doc.text('Descripción', 50, y + 7)
-  doc.text('Cant', 260, y + 7, { width: 40, align: 'right' })
-  doc.text('Precio', 310, y + 7, { width: 60, align: 'right' })
-  doc.text('Desc', 380, y + 7, { width: 60, align: 'right' })
-  doc.text('IVA', 450, y + 7, { width: 60, align: 'right' })
-  doc.text('Total', 510, y + 7, { width: 60, align: 'right' })
+    doc.fontSize(10)
 
-  y += 35
+    doc.text('Descripción', 50, y + 7)
+    doc.text('Cant', 260, y + 7, { width: 40, align: 'right' })
+    doc.text('Precio', 310, y + 7, { width: 60, align: 'right' })
+    doc.text('Desc', 380, y + 7, { width: 60, align: 'right' })
+    doc.text('IVA', 450, y + 7, { width: 60, align: 'right' })
+    doc.text('Total', 510, y + 7, { width: 60, align: 'right' })
+
+    y += 35
+  }
+
+  drawTableHeader()
 
   let subtotalCalculado = 0
   let totalDescuentosCalculado = 0
   let totalIvaCalculado = 0
 
   invoice.details.forEach(item => {
+
+    if (y > 700) {
+
+      doc.addPage()
+      y = 80
+      drawTableHeader()
+
+    }
+
     const quantity = Number(item.orderItemQuantity || 0)
     const price = Number(item.orderItemPrice || 0)
     const discount = Number(item.orderItemDesc || 0)
@@ -168,13 +209,21 @@ doc.text(`Vencimiento: ${vencimientoMostrar}`, 400, 135)
     doc.text(formatMoney(totalLinea), 510, y, { width: 60, align: 'right' })
 
     y += 22
+
   })
 
   doc.moveTo(40, y).lineTo(550, y).stroke('#e5e7eb')
 
   /* =====================================================
-     TOTALES (100% CALCULADOS EN EL TEMPLATE)
+     TOTALES
   ===================================================== */
+
+  if (y > 520) {
+
+    doc.addPage()
+    y = 80
+
+  }
 
   y += 20
 
@@ -197,6 +246,7 @@ doc.text(`Vencimiento: ${vencimientoMostrar}`, 400, 135)
   doc.roundedRect(330, y, 220, 220, 6).stroke('#d1d5db')
 
   let ty = y + 15
+
   doc.fontSize(10)
 
   const row = (label, value) => {
@@ -224,11 +274,15 @@ doc.text(`Vencimiento: ${vencimientoMostrar}`, 400, 135)
   row(`Autoretención (${invoice.autoretencion || 0}%):`, `-$${formatMoney(autoret)}`)
 
   ty += 10
+
   doc.moveTo(340, ty).lineTo(540, ty).stroke('#111827')
+
   ty += 15
 
   doc.fontSize(13)
+
   doc.text('TOTAL A PAGAR:', 340, ty)
+
   doc.text(
     `$${formatMoney(totalPagar)}`,
     450,
@@ -258,4 +312,5 @@ doc.text(`Vencimiento: ${vencimientoMostrar}`, 400, 135)
     740,
     { align: 'right' }
   )
+
 }
